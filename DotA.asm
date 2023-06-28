@@ -71,31 +71,40 @@ start
 	mva #200 atan2.x2
 	mva #20 atan2.y2
 	
-loop
+	ldx #0
+	txa
+@
+:24	sta vram+#*$100,x
+	dex
+	bne @-
 	
+loop
+/*	
 @	lda vcount
 	cmp #20
 	bne @-
-	mva #$04 colpf0+2
+	mva #$04 colpf0+2 */
 	
 	ldx atan2.y2
 	lda atan2.x2
 :3	lsr @
 	add vramlinel,x
-	sta poop
+	;sta poop
 	lda vramlineh,x 
 	adc #0
-	sta poop+1
-	mva random poop:$ffff
+	;sta poop+1
+	;mva random poop:$ffff
 	
-	mva ang:#30 draw_arrow.angle
+	;mva ang:#30 draw_arrow.angle
 	mva #1 draw_arrow.y
 	sta draw_arrow.xch
-	mva #10 count
+	mva #25 count
 	
-loop2	draw_arrow
-	lda #16 
-	add:sta draw_arrow.y
+loop2	lda #16 
+	add draw_arrow.y
+	a_lt #160 nores2
+	lda #0	
+nores2	sta draw_arrow.y
 	add #8
 	sta atan2.y1
 	inc draw_arrow.xch
@@ -106,16 +115,22 @@ loop2	draw_arrow
 	sta atan2.x1
 	atan2
 	sta draw_arrow.angle
-	
-	;inc draw_arrow.angle
+	draw_arrow	
+
+	lda draw_arrow.xch
+	a_lt #28 nores 
+	mva #0 draw_arrow.xch
+nores
 	dec count
 	bne loop2
 	
 	mva #$54 colpf0+2
 	inc atan2.y2
+	dec atan2.x2
 	lda atan2.y2
 	a_lt #160 loop
 	mva #20 atan2.y2
+	pause 0
 	jmp loop
 	
 count	dta 20	
@@ -448,7 +463,7 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	
 .endp
 
-arrow	ins "all_rem2.mic"
+arrow	ins "arr1_data_2.mic"
 
 
 	.align $100
