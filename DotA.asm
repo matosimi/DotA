@@ -66,8 +66,108 @@ start
 	mwa #gameVbi.vbi vbi_ptr
 	mva #1+12+16+32 dmactl ;d400 = 559
 	mva #$c0 nmien ;c0
-	jmp *
 	
+
+	mva #200 atan2.x2
+	mva #20 atan2.y2
+	
+loop
+	
+@	lda vcount
+	cmp #20
+	bne @-
+	mva #$04 colpf0+2
+	
+	ldx atan2.y2
+	lda atan2.x2
+:3	lsr @
+	add vramlinel,x
+	sta poop
+	lda vramlineh,x 
+	adc #0
+	sta poop+1
+	mva random poop:$ffff
+	
+	mva ang:#30 draw_arrow.angle
+	mva #1 draw_arrow.y
+	sta draw_arrow.xch
+	mva #10 count
+	
+loop2	draw_arrow
+	lda #16 
+	add:sta draw_arrow.y
+	add #8
+	sta atan2.y1
+	inc draw_arrow.xch
+	lda draw_arrow.xch
+	asl @
+	asl @
+	asl @
+	sta atan2.x1
+	atan2
+	sta draw_arrow.angle
+	
+	;inc draw_arrow.angle
+	dec count
+	bne loop2
+	
+	mva #$54 colpf0+2
+	inc atan2.y2
+	lda atan2.y2
+	a_lt #160 loop
+	mva #20 atan2.y2
+	jmp loop
+	
+count	dta 20	
+	
+.proc	draw_arrow
+	ldy y
+	lda vramlinel,y
+	add xch
+	sta w1
+	lda vramlineh,y
+	adc #0
+	sta w1+1	;w1 => arrow origin 
+	lda angle
+	lsr @
+	tay
+	mva angletabl,y w2
+	mva angletabh,y w2+1
+	
+	ldx #15
+	ldy #0
+@	lda (w2),y
+	sta (w1),y
+	iny
+	lda (w2),y
+	sta (w1),y
+	iny
+	add16 #30 w1
+	dex
+	bpl @-
+	rts
+xch	dta 0
+y	dta 0
+angle	dta 0
+angletabl	
+.rept	128,#
+	dta l(arrow+#*32)
+.endr
+angletabh
+.rept	128,#
+	dta h(arrow+#*32)
+.endr
+.endp	
+
+vramlinel
+.rept	160,#
+	dta l(vram+#*32)
+.endr
+
+vramlineh
+.rept	160,#
+	dta h(vram+#*32)
+.endr
 	
 .local 	gameVbi
 vbi	inc 20
@@ -348,6 +448,8 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	
 .endp
 
+arrow	ins "all_rem2.mic"
+
 
 	.align $100
 ingame_dl
@@ -357,3 +459,5 @@ ingame_dl
 	dta $4f,a(vram+$1000)
 :63	dta $f
 	dta $41,a(ingame_dl)	
+
+	guard vram
