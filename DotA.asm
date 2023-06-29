@@ -82,12 +82,16 @@ start
 :24	sta vram+#*$100,x
 	dex
 	bne @-
+	
 	/*
-	mva #7 draw_shifted_arrow.y
-	sta draw_shifted_arrow.x
+	mva #0 draw_shifted_arrow.x
+	mva #8 draw_shifted_arrow.y
 	sta draw_shifted_arrow.angle
-	draw_shifted_arrow
-	jmp *
+poop	draw_shifted_arrow
+	inc draw_shifted_arrow.x
+	inc draw_shifted_arrow.angle
+	pause 10
+	jmp poop
 	*/
 	
 loop
@@ -181,17 +185,23 @@ angle	dta 0
 	sta shcount
 	tax
 	mva mask_le,x mask1
+	sta mask12
 	mva mask_ri,x mask2
+	sta mask22
 	lda angle
 	lsr @
 	tay
 	mva angletabl,y w2
 	mva angletabh,y w2+1
+		
+	lda shcount
+	a_ge #5 shift_left
+	
+	;initial shift right from arrowtable to zp	
 	ldy #31
 	lda (w2),y
 	lsr @
-
-	;initial shift right from arrowtable to zp	
+	
 	ldy #0
 .rept 32,#
 	lda (w2),y
@@ -200,21 +210,13 @@ angle	dta 0
 	iny
 .endr
 	dec shcount
-	jeq draw
-	
-	;repeated shifts
+	beq draw
+	;repeated shifts right
 @
 :32	ror zpshift+#
 	dec shcount
 	bne @-
-/*@	ldx #0
-@	ror zpshift,x
-	inx
-	cpx #32
-	bne @-
-	dec shcount
-	bne @-1*/
-
+	
 	;draw
 draw	lda x
 :3	lsr @
@@ -239,7 +241,60 @@ draw	lda x
 	add16 #30 w1
 	dex
 	bpl @-
-	rts
+	rts	
+
+		
+shift_left
+	lda #8
+	sub shcount
+	sta shcount
+	;initial shift left from arrowtable to zp	
+	ldy #0
+	lda (w2),y
+	asl @
+	
+	ldy #31
+.rept 32,#
+	lda (w2),y
+	rol @
+	sta zpshift+31-:1
+	dey
+.endr
+	dec shcount
+	jeq draw2
+	;repeated shifts left
+@
+:32	rol zpshift+31-#
+	dec shcount
+	bne @-
+
+	;draw2 - for left shifted
+draw2	lda x
+:3	lsr @
+	ldy y
+	add vramlinel,y
+	sta w1
+	lda vramlineh,y
+	adc #0
+	sta w1+1
+	
+	ldx #15
+	ldy #0
+	lda zpshift+31
+	jmp skipfirst
+@	lda zpshift-1,y 
+skipfirst	and mask12:#$ff
+	sta (w1),y
+	iny
+	mva zpshift-1,y (w1),y
+	iny 
+	lda zpshift-1,y 
+	and mask22:#$ff
+	sta(w1),y
+	add16 #30 w1
+	dex
+	bpl @-
+	rts	
 	
 noshift	mva y draw_arrow.y
 	mva angle draw_arrow.angle
