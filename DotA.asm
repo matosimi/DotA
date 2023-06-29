@@ -28,6 +28,10 @@ vcount	equ $d40b
 nmien	equ $d40e
 nmist	equ $d40f
 
+
+zpshift		equ $20 ;$20 bytes
+shcount		equ $41	;shift count
+
 unzx7.token	equ $6e
 unzx7.lenL	equ $6f	
 octant		equ $70	;tmp var for atan2
@@ -43,7 +47,7 @@ ntsctimer		equ $c8
 
 
 code	equ $2000
-vram	equ $b000
+vram	equ $e000
 
 	run code
 	
@@ -70,6 +74,7 @@ start
 
 	mva #200 atan2.x2
 	mva #20 atan2.y2
+	mva #0 draw_shifted_arrow.angle
 	
 	ldx #0
 	txa
@@ -77,25 +82,26 @@ start
 :24	sta vram+#*$100,x
 	dex
 	bne @-
+	/*
+	mva #7 draw_shifted_arrow.y
+	sta draw_shifted_arrow.x
+	sta draw_shifted_arrow.angle
+	draw_shifted_arrow
+	jmp *
+	*/
 	
 loop
+	
 /*	
 @	lda vcount
 	cmp #20
 	bne @-
 	mva #$04 colpf0+2 */
 	
-	ldx atan2.y2
-	lda atan2.x2
-:3	lsr @
-	add vramlinel,x
-	;sta poop
-	lda vramlineh,x 
-	adc #0
-	;sta poop+1
-	;mva random poop:$ffff
-	
-	;mva ang:#30 draw_arrow.angle
+	mva atan2.y2 draw_shifted_arrow.y
+	mva atan2.x2 draw_shifted_arrow.x
+	draw_shifted_arrow
+
 	mva #1 draw_arrow.y
 	sta draw_arrow.xch
 	mva #25 count
@@ -127,10 +133,10 @@ nores
 	mva #$54 colpf0+2
 	inc atan2.y2
 	dec atan2.x2
+	inc draw_shifted_arrow.angle
 	lda atan2.y2
 	a_lt #160 loop
 	mva #20 atan2.y2
-	pause 0
 	jmp loop
 	
 count	dta 20	
@@ -164,6 +170,91 @@ count	dta 20
 xch	dta 0
 y	dta 0
 angle	dta 0
+
+.endp
+
+.proc	draw_shifted_arrow
+	lda x
+	and #$07
+	jeq noshift
+	;perform shifting
+	sta shcount
+	tax
+	mva mask_le,x mask1
+	mva mask_ri,x mask2
+	lda angle
+	lsr @
+	tay
+	mva angletabl,y w2
+	mva angletabh,y w2+1
+	ldy #31
+	lda (w2),y
+	lsr @
+
+	;initial shift right from arrowtable to zp	
+	ldy #0
+.rept 32,#
+	lda (w2),y
+	ror @
+	sta zpshift+:1
+	iny
+.endr
+	dec shcount
+	jeq draw
+	
+	;repeated shifts
+@
+:32	ror zpshift+#
+	dec shcount
+	bne @-
+/*@	ldx #0
+@	ror zpshift,x
+	inx
+	cpx #32
+	bne @-
+	dec shcount
+	bne @-1*/
+
+	;draw
+draw	lda x
+:3	lsr @
+	ldy y
+	add vramlinel,y
+	sta w1
+	lda vramlineh,y
+	adc #0
+	sta w1+1
+	
+	ldx #15
+	ldy #0
+@	lda zpshift,y 
+	and mask1:#$ff
+	sta (w1),y
+	iny
+	mva zpshift,y (w1),y
+	iny 
+	lda zpshift,y 
+	and mask2:#$ff
+	sta(w1),y
+	add16 #30 w1
+	dex
+	bpl @-
+	rts
+	
+noshift	mva y draw_arrow.y
+	mva angle draw_arrow.angle
+	lda x
+:3	lsr @
+	sta draw_arrow.xch
+	jmp draw_arrow
+	
+x	dta 0
+y	dta 0
+angle	dta 0
+mask_le	dta 0,%01111111,%00111111,%00011111,%00001111,%00000111,%00000011,%00000001
+mask_ri	dta 0,%10000000,%11000000,%11100000,%11110000,%11111000,%11111100,%11111110
+.endp
+	
 angletabl	
 .rept	128,#
 	dta l(arrow+#*32)
@@ -172,7 +263,6 @@ angletabh
 .rept	128,#
 	dta h(arrow+#*32)
 .endr
-.endp	
 
 vramlinel
 .rept	160,#
@@ -463,9 +553,6 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	
 .endp
 
-arrow	ins "arr1_data_2.mic"
-
-
 	.align $100
 ingame_dl
 	dta $70,$70,$70
@@ -475,4 +562,10 @@ ingame_dl
 :63	dta $f
 	dta $41,a(ingame_dl)	
 
-	guard vram
+
+	.align $1000
+arrow	ins "arr1_data2.mic",0,$1000
+arrow2	ins "arr2_data2.mic",0,$1000
+arrow3	ins "arr3_data2.mic",0,$1000
+arrow4	ins "arr4_data2.mic",0,$1000
+arrow5	ins "arr5_data2.mic",0,$1000
