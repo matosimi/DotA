@@ -48,6 +48,7 @@ ntsctimer		equ $c8
 
 code	equ $2000
 vram	equ $e000
+leveldata	equ $a000
 
 	run code
 	
@@ -93,15 +94,19 @@ poop	draw_shifted_arrow
 	pause 10
 	jmp poop
 	*/
+	process_leveldata
 	
 loop
-	
+	draw_level
+	jmp loop
 /*	
 @	lda vcount
 	cmp #20
 	bne @-
 	mva #$04 colpf0+2 */
 	
+;demo
+/*
 	mva atan2.y2 draw_shifted_arrow.y
 	mva atan2.x2 draw_shifted_arrow.x
 	draw_shifted_arrow
@@ -144,6 +149,42 @@ nores
 	jmp loop
 	
 count	dta 20	
+	
+	*/
+	
+.proc	draw_level
+	ldx process_leveldata.arrows
+	dex
+	stx count
+	ldx process_leveldata.dots 
+	dex
+	stx curdot
+	
+	lda dots_array.x,x
+	sta atan2.x2
+	lda dots_array.y,x
+	sta atan2.y2
+	
+loop	ldx count
+	lda arrows_array.x,x
+	sta atan2.x1
+:3	lsr @
+	sta draw_arrow.xch
+	lda arrows_array.y,x
+	sta atan2.y1
+	sta draw_arrow.y
+	atan2
+	
+	sta draw_arrow.angle
+	draw_arrow
+	
+	dec count
+	bpl loop
+	
+	rts
+count	dta 0
+curdot	dta 0
+.endp
 	
 .proc	draw_arrow
 	ldy y
@@ -608,13 +649,120 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	
 .endp
 
+.proc	process_leveldata
+	mwa #leveldata w1
+	mva #2 page
+	ldy #0
+	sty dots
+	sty arrows
+@	lda (w1),y
+	beq next
+	a_lt #6 setarrow
+	beq setdot
+next	inc x
+	lda x
+	a_lt #32 noincy
+	inc y	
+	mva #0 x
+noincy	iny
+	bne @-
+	inc w1+1
+	dec page
+	bne @-
+;half of 3rd page
+@	lda (w1),y
+	beq next2
+	a_lt #6 setarrow
+	beq setdot
+next2	inc x
+	lda x
+	a_lt #31 noincy2
+	inc y	
+noincy2	iny
+	bpl @-		
+	rts
+	
+;set dot
+setdot	ldx dots
+	lda x
+:3	asl @
+	sta dots_array.x,x
+	lda y
+:3	asl @
+	sta dots_array.y,x
+	iny
+	lda (w1),y
+	cmp #$0e
+	beq notpossible
+	a_out2 #$10 #$19 notpossible
+	and #$0f
+	sta dots_array.number,x
+	inc dots
+	dey
+	lda page
+	jeq next2
+	jne next
+notpossible
+	dta 2
+;set arrow
+.local	setarrow
+	ldx arrows
+	lda x
+:3	asl @
+	sta arrows_array.x,x
+	lda y
+:3	asl @
+	sta arrows_array.y,x
+	iny
+	lda (w1),y
+	cmp #$0e
+	beq nospecial
+	a_out2 #$10 #$19 nospecial
+	and #$0f
+	skip2
+nospecial	lda #$ff
+	sta arrows_array.special,x
+	inc arrows
+	dey
+	lda page
+	jeq next2
+	jne next
+.endl
+	
+x	dta 0
+y	dta 0	
+page	dta 2
+dots	dta 0
+arrows	dta 0
+.endp
+
+.local	dots_array
+x
+:10	dta 0
+y	
+:10	dta 0
+number
+:10	dta 0
+.endl
+
+.local	arrows_array
+x
+:40	dta 0
+y	
+:40	dta 0
+special
+:40	dta 0
+type
+:40	dta 0
+.endl
+
 	.align $100
 ingame_dl
 	dta $70,$70,$70
 	dta $4f,a(vram)
 :127	dta $f
 	dta $4f,a(vram+$1000)
-:63	dta $f
+:31	dta $f
 	dta $41,a(ingame_dl)	
 
 
@@ -624,3 +772,6 @@ arrow2	ins "arr2_data2.mic",0,$1000
 arrow3	ins "arr3_data2.mic",0,$1000
 arrow4	ins "arr4_data2.mic",0,$1000
 arrow5	ins "arr5_data2.mic",0,$1000
+
+	org leveldata
+	ins "levels\lev00.dat"
