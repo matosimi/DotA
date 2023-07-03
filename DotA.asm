@@ -45,16 +45,71 @@ ntsc		equ $c7
 ntsctimer		equ $c8
 ;$cb -> RMT zero page
 
-
+mypmbase	equ $1400
 code	equ $2000
 vram	equ $e000
 leveldata	equ $a000
 
-	run code
+	run start
 	
 	org code
 	
 	icl "matosimi_macros.asx"
+.local	init
+	mwa #idl $230
+	mva #33 559	;narrow screen
+	mva #$78 $2c4 
+	pause 0
+	mva #$ff portb ;turn on osrom a load next block
+	/*mva #1 init
+	ldx >ivbi
+	ldy <ivbi
+	lda #6
+	jsr $e45c*/
+	rts
+idl	
+:10	dta $70
+	dta $49,a(inivram)
+:7	dta $9
+	dta $70
+	;dta 2
+	dta $41,a(idl)
+
+inivram	
+:8*8	dta 0
+
+/*ivbi	dec init
+	bne ivbiout
+	mva #4 init
+	inc init+1
+	lda init+1
+	and #$07
+:3	asl @
+	tax
+	ldy #0
+@	mva iniani,x inivram+3,y
+	tya
+	add #8
+	tay
+	inx
+	cpy #8*8
+	bne @-
+ivbiout	jmp $e45f 
+
+iniani	  
+	dta $ff, $c3, $c3, $c3, $cf, $f3, $c3, $ff
+	dta $ff, $c3, $cf, $c3, $f3, $c3, $c3, $ff
+	dta $ff, $c3, $cf, $f3, $c3, $c3, $c3, $ff
+	dta $ff, $c3, $ff, $c3, $c3, $c3, $c3, $ff
+	dta $ff, $c3, $f3, $cf, $c3, $c3, $c3, $ff
+	dta $ff, $c3, $c3, $f3, $c3, $cf, $c3, $ff
+	dta $ff, $c3, $c3, $c3, $f3, $cf, $c3, $ff
+	dta $ff, $c3, $c3, $c3, $c3, $ff, $c3, $ff	
+	
+last
+*/
+.endl
+	ini init
 start
 	pause 0
 	sei
@@ -76,6 +131,14 @@ start
 	mva #200 atan2.x2
 	mva #20 atan2.y2
 	mva #0 draw_shifted_arrow.angle
+	
+	pmg.init
+:4	mva #$18+#*$30 colpm0+#
+:4	mva #65+9*# hposp0+#
+.rept 4,#
+?x = #
+:16	mva #$ff mypmbase+$100*?x+#+50
+.endr
 	
 	ldx #0
 	txa
@@ -372,6 +435,11 @@ vramlineh
 	
 .local 	gameVbi
 vbi	inc 20
+	pha
+	mva #$be colpf0+2	;color accent can vary
+	mva #$08 colpf0+1
+	mva #1 prior
+	pla
 	rti
 .endl	
 
@@ -649,6 +717,26 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	
 .endp
 
+.local 	pmg
+.proc	init
+	mva >mypmbase pmbase
+	mva #$03 gractl
+	clean_all
+	rts
+.endp
+
+;clean up the PMGs
+.proc	clean_all
+	lda #0
+	tax
+@
+:5	sta mypmbase-$100+$100*#,x
+	dex
+	bne @-
+	rts
+.endp
+.endl
+
 .proc	process_leveldata
 	mwa #leveldata w1
 	mva #2 page
@@ -676,8 +764,9 @@ noincy	iny
 	beq setdot
 next2	inc x
 	lda x
-	a_lt #31 noincy2
-	inc y	
+	a_lt #32 noincy2
+	inc y
+	mva #0 x	
 noincy2	iny
 	bpl @-		
 	rts
@@ -758,11 +847,14 @@ type
 
 	.align $100
 ingame_dl
-	dta $70,$70,$70
+	dta $70,$70,2,0,$f
+	dta 0
 	dta $4f,a(vram)
 :127	dta $f
 	dta $4f,a(vram+$1000)
 :31	dta $f
+	dta 0,$f,0
+	dta $2,2,2,2
 	dta $41,a(ingame_dl)	
 
 
