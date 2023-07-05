@@ -236,9 +236,15 @@ loop	ldx count
 	lda arrows_array.y,x
 	sta atan2.y1
 	sta draw_arrow.y
-	atan2
 	
+	lda arrows_array.type,x
+	tax
+	mva arrowtype,x draw_arrow.type
+	
+	
+	atan2
 	sta draw_arrow.angle
+	
 	draw_arrow
 	
 	dec count
@@ -261,7 +267,9 @@ curdot	dta 0
 	lsr @
 	tay
 	mva angletabl,y w2
-	mva angletabh,y w2+1
+	lda angletabh,y 
+	add type
+	sta w2+1
 	
 	ldx #15
 	ldy #0
@@ -277,7 +285,9 @@ curdot	dta 0
 	rts
 xch	dta 0
 y	dta 0
+type	dta 0
 angle	dta 0
+
 
 .endp
 
@@ -296,7 +306,9 @@ angle	dta 0
 	lsr @
 	tay
 	mva angletabl,y w2
-	mva angletabh,y w2+1
+	lda angletabh,y 
+	add type
+	sta w2+1
 		
 	lda shcount
 	a_ge #5 shift_left
@@ -379,7 +391,7 @@ draw2	lda x
 	add vramlinel,y
 	sta w1
 	lda vramlineh,y
-	adc #0
+	adc type
 	sta w1+1
 	
 	ldx #15
@@ -402,6 +414,7 @@ skipfirst	and mask12:#$ff
 	
 noshift	mva y draw_arrow.y
 	mva angle draw_arrow.angle
+	mva type draw_arrow.type
 	lda x
 :3	lsr @
 	sta draw_arrow.xch
@@ -409,10 +422,13 @@ noshift	mva y draw_arrow.y
 	
 x	dta 0
 y	dta 0
+type	dta 0
 angle	dta 0
 mask_le	dta 0,%01111111,%00111111,%00011111,%00001111,%00000111,%00000011,%00000001
 mask_ri	dta 0,%10000000,%11000000,%11100000,%11110000,%11111000,%11111100,%11111110
 .endp
+
+arrowtype	dta -1,0,16,32,48,64
 	
 angletabl	
 .rept	128,#
@@ -796,6 +812,7 @@ notpossible
 ;set arrow
 .local	setarrow
 	ldx arrows
+	sta arrows_array.type,x
 	lda x
 :3	asl @
 	sta arrows_array.x,x
