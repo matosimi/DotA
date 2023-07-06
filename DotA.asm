@@ -37,6 +37,9 @@ unzx7.lenL	equ $6f
 octant		equ $70	;tmp var for atan2
 ntsccolor		equ $71	;tmp for getcolor
 level		equ $72	;level
+stick		equ $73	;joy
+xpos		equ $74	;pmg cursor position
+ypos		equ $75
 dli_ptr		equ $80
 vbi_ptr		equ $82
 w1		equ $84
@@ -135,6 +138,9 @@ start
 	
 	pmg.init
 :4	mva #$18+#*$30 colpm0+#
+
+	mva #$78 colpm0	;blue cursor
+
 :4	mva #65+9*# hposp0+#
 .rept 4,#
 ?x = #
@@ -158,12 +164,15 @@ poop	draw_shifted_arrow
 	pause 10
 	jmp poop
 	*/
-	mva #0 level
+	mva #3 level
 	
 	load_level
 	process_leveldata
 	
 loop
+	control
+	pmg.draw_player
+	environment
 	draw_level
 	jmp loop
 /*	
@@ -218,6 +227,45 @@ nores
 count	dta 20	
 	
 	*/
+	
+.proc	environment
+	;todo: take care of moving objects (dots/arrows)
+	rts
+.endp
+	
+.proc	control
+	lda porta
+	sta stick
+	
+	lda #8
+	bit stick
+	jeq right
+	lda #4
+	bit stick
+	jeq left
+ud	lda #2
+	bit stick
+	jeq down
+	lda #1
+	bit stick
+	jeq up
+	rts
+	
+right	inc xpos
+	lda xpos
+	a_ge #$7a left
+	jmp ud	
+left	dec xpos
+	beq right
+	jmp ud
+up	dec ypos
+	beq down
+	rts
+down	inc ypos
+	lda ypos
+	a_ge #$95 up
+	rts
+.endp
 	
 .proc	load_level
 	mwa #leveldata ptr
@@ -482,6 +530,7 @@ vbi	inc 20
 	mva #$be colpf0+2	;color accent can vary
 	mva #$08 colpf0+1
 	mva #1 prior
+	mva >txtfnt chbase
 	pla
 	rti
 .endl	
@@ -765,6 +814,8 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	mva >mypmbase pmbase
 	mva #$03 gractl
 	clean_all
+	mva #1 xpos
+	sta ypos
 	rts
 .endp
 
@@ -778,6 +829,25 @@ log2_tab	.byte $00,$00,$20,$32,$40,$4a,$52,$59
 	bne @-
 	rts
 .endp
+
+.proc	draw_player
+topshift	equ 35
+	lda #0
+	ldy ypos
+	sta mypmbase+topshift-1,y
+	sta mypmbase+topshift+11,y
+	ldx #11
+@	mva pldata,x mypmbase+topshift,y
+	iny
+	dex
+	bne @-
+	lda xpos 
+	add #63
+	sta hposp0
+	rts
+pldata	dta $00, $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
+.endp
+
 .endl
 
 .proc	process_leveldata
@@ -891,23 +961,28 @@ type
 
 	.align $100
 ingame_dl
-	dta $70,$70,2,0,$f
+	dta $70,$70,$42,a(title),0,$f
 	dta 0
 	dta $4f,a(vram)
 :127	dta $f
 	dta $4f,a(vram+$1000)
 :31	dta $f
 	dta 0,$f,0
-	dta $2,2,2,2
+	dta $42,a(infobar),2,2,2
 	dta $41,a(ingame_dl)	
 
-
-	.align $1000
+	.align $100
 arrow	ins "arr1_data2.mic",0,$1000
 arrow2	ins "arr2_data2.mic",0,$1000
 arrow3	ins "arr3_data2.mic",0,$1000
 arrow4	ins "arr4_data2.mic",0,$1000
 arrow5	ins "arr5_data2.mic",0,$1000
+
+title	dta d'      .A         '
+infobar   dta d'Level: 00     Tries: 05'
+:96	dta 0
+	dta d'X'
+
 
 .local	levels
 .rept 4,#
@@ -921,3 +996,7 @@ low
 :4	dta l(l0:1)
 
 .endl
+
+
+	.align $400
+txtfnt	ins 'default.fnt'
