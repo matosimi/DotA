@@ -40,6 +40,9 @@ level		equ $72	;level
 stick		equ $73	;joy
 xpos		equ $74	;pmg cursor position
 ypos		equ $75
+dotx		equ $76	;currently tracked dot coords
+doty		equ $77
+hit		equ $78	;0=dot hit
 dli_ptr		equ $80
 vbi_ptr		equ $82
 w1		equ $84
@@ -168,6 +171,8 @@ poop	draw_shifted_arrow
 	
 	load_level
 	process_leveldata
+	nextdot.init
+	mva #1 hit
 	
 loop
 	control
@@ -229,12 +234,61 @@ count	dta 20
 	*/
 	
 .proc	environment
+	;hits
+	lda hit
+	bne x0
+	animate_hit
 	;todo: take care of moving objects (dots/arrows)
-	rts
+x0	rts
+.endp
+
+.proc	animate_hit
+	lda phase
+	cmp #5
+	beq x0
+	asl @
+	asl @
+	sta tmp
+	asl @
+	add tmp
+	tax
+	lda doty
+	add #pmg.draw_player.topshift
+	tay
+	lda dotx 
+	add #63
+	sta hposp0+1
+	
+	mva #12 rpt
+@	mva SPR_1_FRM_1,x mypmbase+$100,y
+	inx
+	iny
+	dec rpt
+	bne @-
+	inc phase
+	pause 10
+x0	rts
+phase	dta 0
+tmp	dta 0
+rpt	dta 0
+
+SPR_1_FRM_1
+  	dta $00, $00, $00, $18, $3c, $3c, $3c, $3c, $3c, $18, $00, $00 ; FRAME 2
+SPR_1_FRM_2
+  	dta $00, $00, $18, $24, $5a, $5a, $5a, $5a, $5a, $24, $18, $00 ; FRAME 3
+SPR_1_FRM_3
+  	dta $00, $18, $24, $42, $91, $99, $99, $99, $89, $42, $24, $18 ; FRAME 4
+SPR_1_FRM_4
+  	dta $00, $08, $20, $02, $80, $19, $18, $98, $01, $40, $04, $10 ; FRAME 5
+SPR_1_FRM_5
+  	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00, $00
 .endp
 	
 .proc	control
-	lda porta
+	lda trig0
+	jeq hitbox
+	
+joy	lda porta
 	sta stick
 	
 	lda #8
@@ -265,6 +319,45 @@ down	inc ypos
 	lda ypos
 	a_ge #$95 up
 	rts
+		
+hitbox	lda xpos
+	add #6
+	sbc dotx
+	cmp #6+4-1
+	bcs joy ;none
+	lda ypos
+	add #11
+	sbc doty
+	cmp #11+7-1
+	bcs joy ;none
+	
+	mva #0 hit
+	sta animate_hit.phase		
+none	rts 
+.endp
+
+.proc	nextdot
+	ldx process_leveldata.dots
+@	dex
+	bmi leveldone
+	lda dots_array.number,x
+	cmp current
+	bne @-
+	lda dots_array.x,x 
+	lsr @	;half the x-resolution
+	sta dotx
+	mva dots_array.y,x doty	
+	rts
+leveldone	mva #$00 colpf0+2
+	jmp *
+	
+.proc	init
+	ldx process_leveldata.dots
+	dex
+	sta current
+	jmp nextdot
+.endp	
+current	dta 0
 .endp
 	
 .proc	load_level
@@ -940,12 +1033,12 @@ arrows	dta 0
 .endp
 
 .local	dots_array
-x
+x	;in pixels with origin at top left corner of playfield
 :10	dta 0
 y	
 :10	dta 0
 number
-:10	dta 0
+:10	dta -1
 .endl
 
 .local	arrows_array
@@ -999,4 +1092,4 @@ low
 
 
 	.align $400
-txtfnt	ins 'default.fnt'
+txtfnt	ins 'text.fnt'
