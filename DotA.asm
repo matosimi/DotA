@@ -36,6 +36,7 @@ unzx7.token	equ $6e
 unzx7.lenL	equ $6f	
 octant		equ $70	;tmp var for atan2
 ntsccolor		equ $71	;tmp for getcolor
+level		equ $72	;level
 dli_ptr		equ $80
 vbi_ptr		equ $82
 w1		equ $84
@@ -47,8 +48,8 @@ ntsctimer		equ $c8
 
 mypmbase	equ $1400
 code	equ $2000
-vram	equ $e000
-leveldata	equ $a000
+vram	equ $e000	;to $f7ff
+leveldata	equ $fd00 ;to $ff80
 
 	run start
 	
@@ -157,6 +158,9 @@ poop	draw_shifted_arrow
 	pause 10
 	jmp poop
 	*/
+	mva #0 level
+	
+	load_level
 	process_leveldata
 	
 loop
@@ -214,6 +218,29 @@ nores
 count	dta 20	
 	
 	*/
+	
+.proc	load_level
+	mwa #leveldata ptr
+	ldx level
+	mva levels.low,x w1
+	mva levels.high,x w1+1
+	ldx #2	;levelsize $280
+	ldy #0
+@	lda (w1),y
+	sta ptr:leveldata,y
+	dey
+	bne @-
+	inc ptr+1
+	inc w1+1
+	dex
+	bmi out
+	bne @-
+	ldy #$7f	;half page
+	jmp @-
+	
+out	mva (w1),y leveldata+$200	;last byte
+	rts
+.endp
 	
 .proc	draw_level
 	ldx process_leveldata.arrows
@@ -882,5 +909,15 @@ arrow3	ins "arr3_data2.mic",0,$1000
 arrow4	ins "arr4_data2.mic",0,$1000
 arrow5	ins "arr5_data2.mic",0,$1000
 
-	org leveldata
-	ins "levels\lev00.dat"
+.local	levels
+.rept 4,#
+l0:1	ins "levels\lev0:1.dat"
+.endr
+
+high
+:4	dta h(l0:1)
+
+low
+:4	dta l(l0:1)
+
+.endl
