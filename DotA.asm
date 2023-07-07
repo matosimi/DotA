@@ -179,6 +179,7 @@ loop
 	pmg.draw_player
 	environment
 	draw_level
+	pause 2
 	jmp loop
 /*	
 @	lda vcount
@@ -253,20 +254,20 @@ x0	rts
 	add tmp
 	tax
 	lda doty
-	add #pmg.draw_player.topshift
+	add #pmg.draw_player.topshift+2
 	tay
 	lda dotx 
-	add #63
+	add #63+1
 	sta hposp0+1
 	
-	mva #12 rpt
+	mva #10 rpt
 @	mva SPR_1_FRM_1,x mypmbase+$100,y
 	inx
 	iny
 	dec rpt
-	bne @-
+	bpl @-
 	inc phase
-	pause 10
+	;pause 10
 x0	rts
 phase	dta 0
 tmp	dta 0
@@ -285,6 +286,7 @@ SPR_1_FRM_5
 .endp
 	
 .proc	control
+	jsr hitbox
 	lda trig0
 	jeq hitbox
 	
@@ -321,19 +323,25 @@ down	inc ypos
 	rts
 		
 hitbox	lda xpos
-	add #6
+	add #2-1
 	sbc dotx
-	cmp #6+4-1
-	bcs joy ;none
-	lda ypos
-	add #11
-	sbc doty
-	cmp #11+7-1
-	bcs joy ;none
+	cmp #2+2-1	;w1+w2-1
+	bcs none ;joy ;none
+	
+	lda doty
+	add #2+4-1
+	sbc ypos
+	cmp #3+2-2	;h1+h2-1
+	bcs none ;joy ;none
 	
 	mva #0 hit
-	sta animate_hit.phase		
-none	rts 
+	;sta animate_hit.phase
+	mva #4 animate_hit.phase
+	mva #$02 gameVbi.levaccent
+	rts
+		
+none	mva #$be gameVbi.levaccent
+	rts 
 .endp
 
 .proc	nextdot
@@ -620,7 +628,7 @@ vramlineh
 .local 	gameVbi
 vbi	inc 20
 	pha
-	mva #$be colpf0+2	;color accent can vary
+	mva levaccent:#$be colpf0+2	;color accent can vary
 	mva #$08 colpf0+1
 	mva #1 prior
 	mva >txtfnt chbase
@@ -929,16 +937,16 @@ topshift	equ 35
 	ldy ypos
 	sta mypmbase+topshift-1,y
 	sta mypmbase+topshift+11,y
-	ldx #11
+	ldx #10
 @	mva pldata,x mypmbase+topshift,y
 	iny
 	dex
-	bne @-
+	bpl @-
 	lda xpos 
 	add #63
 	sta hposp0
 	rts
-pldata	dta $00, $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
+pldata	dta $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
 .endp
 
 .endl
