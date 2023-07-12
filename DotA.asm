@@ -167,19 +167,19 @@ poop	draw_shifted_arrow
 	pause 10
 	jmp poop
 	*/
-	mva #3 level
+	mva #2 level
 	
 	load_level
 	process_leveldata
 	nextdot.init
-	mva #1 hit
+	mva #-1 hit
 	
 loop
 	control
 	pmg.draw_player
 	environment
 	draw_level
-	pause 2
+	pause 0
 	jmp loop
 /*	
 @	lda vcount
@@ -237,7 +237,7 @@ count	dta 20
 .proc	environment
 	;hits
 	lda hit
-	bne x0
+	bmi x0
 	animate_hit
 	;todo: take care of moving objects (dots/arrows)
 x0	rts
@@ -245,33 +245,40 @@ x0	rts
 
 .proc	animate_hit
 	lda phase
-	cmp #5
-	beq x0
-	asl @
+	cmp #17
+	bne @+
+	mva #5 phase
+@	asl @
 	asl @
 	sta tmp
 	asl @
 	add tmp
 	tax
-	lda doty
+	lda aniy
 	add #pmg.draw_player.topshift+2
 	tay
-	lda dotx 
+	lda anix 
 	add #63+1
 	sta hposp0+1
 	
-	mva #10 rpt
+	mva #11 rpt
 @	mva SPR_1_FRM_1,x mypmbase+$100,y
 	inx
 	iny
 	dec rpt
 	bpl @-
 	inc phase
-	;pause 10
+	lda phase
+	cmp #5
+	bne x0
+	nextdot
+	
 x0	rts
-phase	dta 0
+phase	dta -1
 tmp	dta 0
 rpt	dta 0
+anix	dta 0
+aniy	dta 0
 
 SPR_1_FRM_1
   	dta $00, $00, $00, $18, $3c, $3c, $3c, $3c, $3c, $18, $00, $00 ; FRAME 2
@@ -283,10 +290,47 @@ SPR_1_FRM_4
   	dta $00, $08, $20, $02, $80, $19, $18, $98, $01, $40, $04, $10 ; FRAME 5
 SPR_1_FRM_5
   	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00, $00
+
+.local	orbit
+SPR_1_FRM_0
+  dta $00, $00, $00, $00, $00, $18, $1a, $1a, $00, $00, $00, $00
+; FRAME 1
+SPR_1_FRM_1
+  dta $00, $00, $00, $02, $02, $18, $18, $18, $00, $00, $00, $00
+; FRAME 2
+SPR_1_FRM_2
+  dta $00, $04, $04, $00, $00, $18, $18, $18, $00, $00, $00, $00
+; FRAME 3
+SPR_1_FRM_3
+  dta $00, $08, $08, $00, $00, $18, $18, $18, $00, $00, $00, $00
+; FRAME 4
+SPR_1_FRM_4
+  dta $00, $20, $20, $00, $00, $18, $18, $18, $00, $00, $00, $00
+; FRAME 5
+SPR_1_FRM_5
+  dta $00, $00, $00, $40, $40, $18, $18, $18, $00, $00, $00, $00
+; FRAME 6
+SPR_1_FRM_6
+  dta $00, $00, $00, $00, $00, $58, $58, $18, $00, $00, $00, $00
+; FRAME 7
+SPR_1_FRM_7
+  dta $00, $00, $00, $00, $00, $18, $18, $58, $40, $00, $00, $00
+; FRAME 8
+SPR_1_FRM_8
+  dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $20, $20
+; FRAME 9
+SPR_1_FRM_9
+  dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $08, $08
+; FRAME 10
+SPR_1_FRM_10
+  dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $04, $04
+; FRAME 11
+SPR_1_FRM_11
+  dta $00, $00, $00, $00, $00, $18, $18, $18, $02, $02, $00, $00
+.endl
 .endp
 	
 .proc	control
-	jsr hitbox
 	lda trig0
 	jeq hitbox
 	
@@ -326,25 +370,29 @@ hitbox	lda xpos
 	add #2-1
 	sbc dotx
 	cmp #2+2-1	;w1+w2-1
-	bcs none ;joy ;none
+	bcs joy ;none
 	
 	lda doty
 	add #2+4-1
 	sbc ypos
 	cmp #3+2-2	;h1+h2-1
-	bcs none ;joy ;none
+	bcs joy ;none
 	
 	mva #0 hit
-	;sta animate_hit.phase
-	mva #4 animate_hit.phase
-	mva #$02 gameVbi.levaccent
+	sta animate_hit.phase
+	mva dotx animate_hit.anix
+	mva doty animate_hit.aniy
+	
+	;mva #4 animate_hit.phase
+	;mva #$02 gameVbi.levaccent
 	rts
 		
-none	mva #$be gameVbi.levaccent
+none	;mva #$be gameVbi.levaccent
 	rts 
 .endp
 
 .proc	nextdot
+	dec current
 	ldx process_leveldata.dots
 @	dex
 	bmi leveldone
@@ -360,9 +408,7 @@ leveldone	mva #$00 colpf0+2
 	jmp *
 	
 .proc	init
-	ldx process_leveldata.dots
-	dex
-	sta current
+	mva process_leveldata.dots current
 	jmp nextdot
 .endp	
 current	dta 0
@@ -395,9 +441,7 @@ out	mva (w1),y leveldata+$200	;last byte
 	ldx process_leveldata.arrows
 	dex
 	stx count
-	ldx process_leveldata.dots 
-	dex
-	stx curdot
+	ldx nextdot.current 
 	
 	lda dots_array.x,x
 	sta atan2.x2
@@ -428,7 +472,7 @@ loop	ldx count
 	
 	rts
 count	dta 0
-curdot	dta 0
+;curdot	dta 0
 .endp
 	
 .proc	draw_arrow
@@ -637,7 +681,15 @@ vbi	inc 20
 .endl	
 
 .local	gameDli
-dli	rti
+dli	pha
+	sta wsync
+	mva #$70 colpf0+4
+	mva #$41 prior
+	sta wsync
+	mva #1 prior
+	mva #$00 colpf0+4
+	pla
+	rti
 .endl
 	
 NMI	bit nmist
@@ -942,9 +994,11 @@ topshift	equ 35
 	iny
 	dex
 	bpl @-
+	lda animate_hit.phase
+	a_lt #5 @+
 	lda xpos 
 	add #63
-	sta hposp0
+@	sta hposp0
 	rts
 pldata	dta $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
 .endp
@@ -1062,15 +1116,35 @@ type
 
 	.align $100
 ingame_dl
-	dta $70,$70,$42,a(title),0,$f
-	dta 0
+	dta $70,$70,$70+$80,$4f,a(dark),0,$4f,a(brdr)
+	;dta 0
 	dta $4f,a(vram)
 :127	dta $f
 	dta $4f,a(vram+$1000)
 :31	dta $f
-	dta 0,$f,0
-	dta $42,a(infobar),2,2,2
+	dta $4f,a(brdr)
+	dta $80
+	dta $4f,a(dark2),0
+	dta $4f,a(brdr)
+	dta $42,a(infobar),2,2
+	dta $4f,a(brdr)
+	dta $80
+	dta $4f,a(dark)
 	dta $41,a(ingame_dl)	
+
+brdr	dta $80
+:30	dta 0
+	dta $01
+	
+dark
+:8	dta #*$10*2 + #*2+1
+:8	dta $ff
+dark2
+:8	dta $ff
+:8	dta [[7-#]*$10]*2+$10 + [7-#]*2
+:8	dta #*$10*2 + #*2+1
+:8	dta $ff
+
 
 	.align $100
 arrow	ins "arr1_data2.mic",0,$1000
