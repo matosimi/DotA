@@ -457,21 +457,43 @@ loop	ldx count
 	sta atan2.y1
 	sta draw_arrow.y
 	
+	mva arrows_array.angle,x draw_arrow.angle
 	lda arrows_array.type,x
 	tax
 	mva arrowtype,x draw_arrow.type
-	
-	
-	atan2
-	sta draw_arrow.angle
-	
 	draw_arrow
 	
-	dec count
+	atan2
+	
+	;calculates difference between target and current angle of arrow
+	;then takes quarter of the difference and add/subtract from current
+	;a contains target angle
+	ldx count
+	sub draw_arrow.angle
+	beq next
+	a_lt #127 half
+	eor #$ff
+	lsr @
+	lsr @
+	
+	ldx count
+	sta tmp
+	lda arrows_array.angle,x 
+	sub tmp
+	sta arrows_array.angle,x
+	jmp next 
+	
+half	lsr @
+	lsr @
+	ldx count
+	add:sta arrows_array.angle,x	
+	
+next	dec count
 	bpl loop
 	
 	rts
 count	dta 0
+tmp	dta 0
 ;curdot	dta 0
 .endp
 	
@@ -1111,6 +1133,8 @@ y
 special
 :40	dta 0
 type
+:40	dta 0
+angle
 :40	dta 0
 .endl
 
