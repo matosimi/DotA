@@ -393,6 +393,7 @@ none	;mva #$be gameVbi.levaccent
 
 .proc	nextdot
 	dec current
+	bmi leveldone
 	ldx process_leveldata.dots
 @	dex
 	bmi leveldone
@@ -405,7 +406,15 @@ none	;mva #$be gameVbi.levaccent
 	mva dots_array.y,x doty	
 	rts
 leveldone	mva #$00 colpf0+2
-	jmp *
+	inc current ;debug
+	ldx process_leveldata.arrows
+	dex
+@	lda arrows_array.angle,x
+	eor #$80
+	sta arrows_array.angle,x
+	dex
+	bpl @-
+	rts
 	
 .proc	init
 	mva process_leveldata.dots current
@@ -475,8 +484,10 @@ loop	ldx count
 	eor #$ff
 	lsr @
 	lsr @
-	
-	ldx count
+	bne @+
+	lda #1	;if quarter=0 then make it 1 so it can finetune
+		
+@	ldx count
 	sta tmp
 	lda arrows_array.angle,x 
 	sub tmp
@@ -485,7 +496,9 @@ loop	ldx count
 	
 half	lsr @
 	lsr @
-	ldx count
+	bne @+
+	lda #1	;if quarter=0 then make it 1 so it can finetune
+@	ldx count
 	add:sta arrows_array.angle,x	
 	
 next	dec count
@@ -1093,6 +1106,7 @@ notpossible
 	lda y
 :3	asl @
 	sta arrows_array.y,x
+	mva random arrows_array.angle,x
 	iny
 	lda (w1),y
 	cmp #$0e
