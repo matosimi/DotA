@@ -1081,6 +1081,7 @@ setdot	ldx dots
 	sta dots_array.x,x
 	lda y
 :3	asl @
+	sub #1	;small compensation to be in exact position
 	sta dots_array.y,x
 	iny
 	lda (w1),y
@@ -1192,7 +1193,7 @@ arrow4	ins "arr4_data2.mic",0,$1000
 arrow5	ins "arr5_data2.mic",0,$1000
 
 title	dta d'      .A         '
-infobar   dta d'Level: 00     Tries: 05'
+infobar   dta d' LEVEL: 00     TRIES: 05'
 :96	dta 0
 	dta d'X'
 
