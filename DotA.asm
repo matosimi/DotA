@@ -140,6 +140,8 @@ start
 	mva #0 draw_shifted_arrow.angle
 	
 	pmg.init
+/*
+;some pmg shit
 :4	mva #$18+#*$30 colpm0+#
 
 	mva #$78 colpm0	;blue cursor
@@ -149,7 +151,7 @@ start
 ?x = #
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
-	
+	*/
 	ldx #0
 	txa
 @
@@ -173,6 +175,7 @@ poop	draw_shifted_arrow
 	process_leveldata
 	nextdot.init
 	mva #-1 hit
+	pmg.draw_gtia_overlay
 	
 loop
 	control
@@ -259,7 +262,7 @@ x0	rts
 	tay
 	lda anix 
 	add #63+1
-	sta hposp0+1
+	sta gamedli.dotxpos
 	
 	mva #11 rpt
 @	mva SPR_1_FRM_1,x mypmbase+$100,y
@@ -718,11 +721,24 @@ vbi	inc 20
 .local	gameDli
 dli	pha
 	sta wsync
-	mva #$70 colpf0+4
+	mva #$03 sizep0
+	sta sizep0+1
+	mva #$20 hposp0
+	mva #$c0 hposp0+1
+	mva #0 colpm0
+	sta colpm0+1
+	sta wsync
+	mva #$40 colpf0+4
 	mva #$41 prior
 	sta wsync
 	mva #1 prior
 	mva #$00 colpf0+4
+	sta sizep0
+	sta sizep0+1
+	mva playerxpos:#1 hposp0
+	mva dotxpos:#1 hposp0+1
+	mva #$78 colpm0
+	mva #$38 colpm0+1
 	pla
 	rti
 .endl
@@ -1033,11 +1049,18 @@ topshift	equ 35
 	a_lt #5 @+
 	lda xpos 
 	add #63
-@	sta hposp0
+@	sta gameDli.playerxpos
 	rts
 pldata	dta $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
 .endp
 
+.proc	draw_gtia_overlay
+	lda #255
+:2	sta mypmbase+$20+#*$100
+:2	sta mypmbase+$c5+#*$100
+:2	sta mypmbase+$d2+#*$100
+	rts
+.endp
 .endl
 
 .proc	process_leveldata
@@ -1155,19 +1178,19 @@ angle
 
 	.align $100
 ingame_dl
-	dta $70,$70,$70+$80,$4f,a(dark),0,$4f,a(brdr)
+	dta $70,$70,$60+$80,$0,$4f,a(dark),0,$4f,a(brdr)
 	;dta 0
 	dta $4f,a(vram)
 :127	dta $f
 	dta $4f,a(vram+$1000)
 :31	dta $f
-	dta $4f,a(brdr)
-	dta $80
+	dta $cf,a(brdr)
+	dta $0
 	dta $4f,a(dark2),0
 	dta $4f,a(brdr)
-	dta $42,a(infobar),2,2
-	dta $4f,a(brdr)
-	dta $80
+	dta $42,a(infobar) ;,2,2
+	dta $cf,a(brdr)
+	dta $0
 	dta $4f,a(dark)
 	dta $41,a(ingame_dl)	
 
@@ -1193,7 +1216,7 @@ arrow4	ins "arr4_data2.mic",0,$1000
 arrow5	ins "arr5_data2.mic",0,$1000
 
 title	dta d'      .A         '
-infobar   dta d' LEVEL: 00     TRIES: 05'
+infobar   dta d' LEVEL: 00  TRIES: 05  TIME: 22'
 :96	dta 0
 	dta d'X'
 
