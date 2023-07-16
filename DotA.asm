@@ -43,6 +43,7 @@ ypos		equ $75
 dotx		equ $76	;currently tracked dot coords
 doty		equ $77
 hit		equ $78	;0=dot hit
+levaccent		equ $79
 dli_ptr		equ $80
 vbi_ptr		equ $82
 w1		equ $84
@@ -169,13 +170,14 @@ poop	draw_shifted_arrow
 	pause 10
 	jmp poop
 	*/
-	mva #2 level
-	
+	mva #0 level
+	mva #$b0 levaccent ;green
 	load_level
 	process_leveldata
 	nextdot.init
 	mva #-1 hit
 	pmg.draw_gtia_overlay
+	fadein
 	
 loop
 	control
@@ -236,6 +238,41 @@ nores
 count	dta 20	
 	
 	*/
+	
+.proc	fadein
+	ldx #$00
+@	txa
+	ora levaccent
+	sta gameVbi.accent
+	txa
+	sub #$8
+	bpl nozero
+	lda #0
+nozero	sta gameVbi.darkone
+	
+	pause 1
+	inx
+	cpx #$10
+	bne @-
+	rts
+.endp	
+
+.proc	fadeout
+	ldx #$0f
+@	txa
+	ora levaccent
+	sta gameVbi.accent
+	txa
+	sub #$8
+	bpl nozero
+	lda #0
+nozero	sta gameVbi.darkone
+	
+	pause 1
+	dex
+	bpl @-
+	rts
+.endp	
 	
 .proc	environment
 	;hits
@@ -408,7 +445,8 @@ none	;mva #$be gameVbi.levaccent
 	sta dotx
 	mva dots_array.y,x doty	
 	rts
-leveldone	mva #$00 colpf0+2
+leveldone	;mva #$00 colpf0+2
+	fadeout
 	inc current ;debug
 	ldx process_leveldata.arrows
 	dex
@@ -710,8 +748,8 @@ vramlineh
 .local 	gameVbi
 vbi	inc 20
 	pha
-	mva levaccent:#$be colpf0+2	;color accent can vary
-	mva #$08 colpf0+1
+	mva accent:#$be colpf0+2	;color accent can vary
+	mva darkone:#$08 colpf0+1
 	mva #1 prior
 	mva >txtfnt chbase
 	pla
