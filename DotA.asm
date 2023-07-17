@@ -302,7 +302,7 @@ x0	rts
 	sta gamedli.dotxpos
 	
 	mva #11 rpt
-@	mva SPR_1_FRM_1,x mypmbase+$100,y
+@	mva boom.SPR_1_FRM_1,x mypmbase+$100,y
 	inx
 	iny
 	dec rpt
@@ -320,54 +320,79 @@ rpt	dta 0
 anix	dta 0
 aniy	dta 0
 
-SPR_1_FRM_1
-  	dta $00, $00, $00, $18, $3c, $3c, $3c, $3c, $3c, $18, $00, $00 ; FRAME 2
-SPR_1_FRM_2
-  	dta $00, $00, $18, $24, $5a, $5a, $5a, $5a, $5a, $24, $18, $00 ; FRAME 3
-SPR_1_FRM_3
-  	dta $00, $18, $24, $42, $91, $99, $99, $99, $89, $42, $24, $18 ; FRAME 4
-SPR_1_FRM_4
-  	dta $00, $08, $20, $02, $80, $19, $18, $98, $01, $40, $04, $10 ; FRAME 5
-SPR_1_FRM_5
-  	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00, $00
+;dot type taken from nextdot
+.proc	init
+	;select proper letter animation
+	ldx nextdot.current
+	ldy s24,x
+	ldx #23
+@	mva spawn.leta,y spawn.SPR_1_FRM_0,x
+	dey
+	dex
+	bpl @- 
+	mva #0 phase
+	sta hit
+	mva dotx animate_hit.anix
+	mva doty animate_hit.aniy
+	rts
+.endp
+
+s24	;last item of 24s in row
+:6	dta #*24+23
+
+;animation: boom -> spawn reversed, pause, spawn -> orbit
+
+.local	boom
+SPR_1_FRM_1	dta $00, $00, $00, $18, $3c, $3c, $3c, $3c, $3c, $18, $00, $00 
+SPR_1_FRM_2	dta $00, $00, $18, $24, $5a, $5a, $5a, $5a, $5a, $24, $18, $00 
+SPR_1_FRM_3	dta $00, $18, $24, $42, $91, $99, $99, $99, $89, $42, $24, $18 
+SPR_1_FRM_4	dta $00, $08, $20, $02, $80, $19, $18, $98, $01, $40, $04, $10 
+SPR_1_FRM_5	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00, $00
+.endl
 
 .local	orbit
-SPR_1_FRM_0
-  dta $00, $00, $00, $00, $00, $18, $1a, $1a, $00, $00, $00, $00
-; FRAME 1
-SPR_1_FRM_1
-  dta $00, $00, $00, $02, $02, $18, $18, $18, $00, $00, $00, $00
-; FRAME 2
-SPR_1_FRM_2
-  dta $00, $04, $04, $00, $00, $18, $18, $18, $00, $00, $00, $00
-; FRAME 3
-SPR_1_FRM_3
-  dta $00, $08, $08, $00, $00, $18, $18, $18, $00, $00, $00, $00
-; FRAME 4
-SPR_1_FRM_4
-  dta $00, $20, $20, $00, $00, $18, $18, $18, $00, $00, $00, $00
-; FRAME 5
-SPR_1_FRM_5
-  dta $00, $00, $00, $40, $40, $18, $18, $18, $00, $00, $00, $00
-; FRAME 6
-SPR_1_FRM_6
-  dta $00, $00, $00, $00, $00, $58, $58, $18, $00, $00, $00, $00
-; FRAME 7
-SPR_1_FRM_7
-  dta $00, $00, $00, $00, $00, $18, $18, $58, $40, $00, $00, $00
-; FRAME 8
-SPR_1_FRM_8
-  dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $20, $20
-; FRAME 9
-SPR_1_FRM_9
-  dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $08, $08
-; FRAME 10
-SPR_1_FRM_10
-  dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $04, $04
-; FRAME 11
-SPR_1_FRM_11
-  dta $00, $00, $00, $00, $00, $18, $18, $18, $02, $02, $00, $00
+SPR_1_FRM_0	dta $00, $00, $00, $00, $00, $18, $1a, $1a, $00, $00, $00, $00
+SPR_1_FRM_1	dta $00, $00, $00, $02, $02, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_2	dta $00, $04, $04, $00, $00, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_3	dta $00, $08, $08, $00, $00, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_4	dta $00, $20, $20, $00, $00, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_5	dta $00, $00, $00, $40, $40, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_6	dta $00, $00, $00, $00, $00, $58, $58, $18, $00, $00, $00, $00
+SPR_1_FRM_7	dta $00, $00, $00, $00, $00, $18, $18, $58, $40, $00, $00, $00
+SPR_1_FRM_8	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $20, $20
+SPR_1_FRM_9	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $08, $08
+SPR_1_FRM_10	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $04, $04
+SPR_1_FRM_11	dta $00, $00, $00, $00, $00, $18, $18, $18, $02, $02, $00, $00
 .endl
+
+;letter spawn
+.local 	spawn
+SPR_1_FRM_0 	dta $00, $00, $04, $0e, $0e, $db, $db, $df, $1f, $1b, $00, $00
+SPR_1_FRM_1	dta $00, $00, $00, $04, $0e, $df, $db, $df, $0e, $00, $00, $00
+SPR_1_FRM_2	dta $00, $00, $00, $08, $1c, $dc, $dc, $dc, $1c, $00, $00, $00
+SPR_1_FRM_3	dta $00, $00, $00, $00, $00, $d8, $d8, $d8, $00, $00, $00, $00
+SPR_1_FRM_4	dta $00, $00, $00, $00, $00, $c0, $d0, $d0, $00, $00, $00, $00
+
+leta	dta $00, $00, $04, $0e, $0e, $db, $db, $df, $1f, $1b, $00, $00
+	dta $00, $00, $00, $04, $0e, $df, $db, $df, $0e, $00, $00, $00
+
+letb	dta $00, $00, $1e, $1f, $1b, $de, $db, $db, $1f, $1e, $00, $00
+	dta $00, $00, $00, $1e, $1e, $df, $db, $df, $1e, $00, $00, $00
+	
+letc	dta $00, $00, $0e, $1f, $1b, $d8, $d8, $db, $1f, $0e, $00, $00
+	dta $00, $00, $00, $0e, $1f, $df, $d8, $df, $0e, $00, $00, $00
+
+letd	dta $00, $00, $1e, $1f, $1b, $db, $db, $db, $1f, $1e, $00, $00
+	dta $00, $00, $00, $1e, $1f, $df, $db, $df, $1e, $00, $00, $00
+	
+lete	dta $00, $00, $1f, $1f, $18, $de, $de, $d8, $1f, $1f, $00, $00
+	dta $00, $00, $00, $1f, $1f, $df, $dc, $df, $1f, $00, $00, $00
+	
+letf	dta $00, $00, $1f, $1f, $18, $dc, $dc, $d8, $18, $18, $00, $00
+	dta $00, $00, $00, $1f, $1f, $df, $dc, $d8, $18, $00, $00, $00
+
+.endl
+
 .endp
 	
 .proc	control
@@ -418,10 +443,8 @@ hitbox	lda xpos
 	cmp #3+2-2	;h1+h2-1
 	bcs joy ;none
 	
-	mva #0 hit
-	sta animate_hit.phase
-	mva dotx animate_hit.anix
-	mva doty animate_hit.aniy
+	
+	animate_hit.init
 	
 	;mva #4 animate_hit.phase
 	;mva #$02 gameVbi.levaccent
