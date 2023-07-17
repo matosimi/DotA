@@ -1,5 +1,8 @@
 ;DotA by matosimi 2023
 
+debug_skip_title = 1
+
+
 color0	equ $2fc
 hposp0	equ $d000
 hposm0	equ $d004
@@ -124,6 +127,10 @@ start
 	detect_stereo
 	detect_video_system
 	mva #1 580	;boot on reset
+	
+	ift debug_skip_title == 0
+	jsr g2f.main
+	eif
 	
 	mva #$0 nmien 
 	mva #$fe portb	;turn off osrom and basicrom
@@ -392,8 +399,8 @@ letf	dta $00, $00, $1f, $1f, $18, $dc, $dc, $d8, $18, $18, $00, $00
 	dta $00, $00, $00, $1f, $1f, $df, $dc, $d8, $18, $00, $00, $00
 
 .endl
-
 .endp
+
 	
 .proc	control
 	lda trig0
@@ -1298,3 +1305,7 @@ low
 
 	.align $400
 txtfnt	ins 'text.fnt'
+
+.local	g2f
+	icl "title\exp\title_integrated.asm"
+.endl

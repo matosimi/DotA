@@ -2,3 +2,5 @@
 /*.lab
 /tools/Arrower/.vs
 /tools/Arrower/obj
+/title/exp/*.lst
+/title/exp/*.lab
