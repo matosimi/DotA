@@ -177,7 +177,7 @@ poop	draw_shifted_arrow
 	pause 10
 	jmp poop
 	*/
-	mva #0 level
+	mva #2 level
 	mva #$b0 levaccent ;green
 	load_level
 	process_leveldata
@@ -185,6 +185,7 @@ poop	draw_shifted_arrow
 	mva #-1 hit
 	pmg.draw_gtia_overlay
 	fadein
+	mva #176 animate_hit.anix
 	
 loop
 	control
@@ -287,12 +288,14 @@ nozero	sta gameVbi.darkone
 	bmi x0
 	animate_hit
 	;todo: take care of moving objects (dots/arrows)
-x0	rts
+	rts
+x0	animate_hit.orbiting
+	rts
 .endp
 
 .proc	animate_hit
 	;boom - 5 frames, pause 4, spawn 5 frames pause 4,pause 50, spawn reversed 5 frames, pause 4
-	ldx phase
+	mvx #0 phase
 x1	ldy bspframes,x
 	
 	lda bspxposes,x
@@ -303,12 +306,15 @@ x1	ldy bspframes,x
 	add #pmg.draw_player.topshift+2
 	tax	
 	
-	mva #11 rpt
+/*	mva #11 rpt
 @	mva boom.SPR_1_FRM_1,y mypmbase+$100,x
 	inx
 	iny
 	dec rpt
-	bpl @-
+	bpl @-*/
+:12	mva boom+#,y mypmbase+$100+#,x
+
+	
 	inc phase
 	pause 3
 	ldx phase
@@ -321,7 +327,7 @@ x1	ldy bspframes,x
 	beq nextlevel
 	jmp x1
 	
-nextlevel	jmp *
+nextlevel	fadeout
 done	mva #-1 hit
 	mva #0 phase
 	;orbit animation can start asynchronously
@@ -335,12 +341,43 @@ aniy	dta 0
 
 .proc	orbiting
 	ldx phase
-	;;todo
+	ldy s12,x
+	
+	lda #64
+	add anix 
+	sta gamedli.dotxpos
+	
+	lda aniy
+	add #pmg.draw_player.topshift+2
+	tax
+/*	mva #11 rpt
+@	mva orbit,y mypmbase+$100,x
+	inx
+	iny
+	dec rpt
+	bpl @-*/
+:12	mva orbit+#,y mypmbase+$100+#,x
+	inc phase
+	lda phase
+	a_ge #12 zero
+	rts
+zero	mva #0 phase
 	rts
 .endp
 
 ;dot type taken from nextdot
 .proc	init
+	;delete orbit anim
+	lda aniy
+	add #pmg.draw_player.topshift+2
+	tax
+	ldy #12
+	lda #0
+@	sta mypmbase+$100,x
+	inx
+	dey
+	bne @-
+	
 	;select proper letter animation
 	ldx nextdot.current
 	ldy s24,x
@@ -358,6 +395,8 @@ aniy	dta 0
 
 s24	;last item of 24s in row
 :6	dta #*24+23
+s12	;first item of 12s in row
+:12	dta #*12
 bspframes	;boom+spawn+spawn reversed frames
 :5	dta #*12		;boom
 :5	dta [9-#]*12	;spawn 
@@ -1137,8 +1176,8 @@ topshift	equ 35
 	iny
 	dex
 	bpl @-
-	lda animate_hit.phase
-	a_lt #5 @+
+	lda hit
+	beq @+
 	lda xpos 
 	add #63
 @	sta gameDli.playerxpos
