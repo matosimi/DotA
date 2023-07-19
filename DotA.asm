@@ -160,6 +160,9 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
+	mva #0 level
+
+levelinit
 	ldx #0
 	txa
 @
@@ -167,17 +170,6 @@ start
 	dex
 	bne @-
 	
-	/*
-	mva #0 draw_shifted_arrow.x
-	mva #8 draw_shifted_arrow.y
-	sta draw_shifted_arrow.angle
-poop	draw_shifted_arrow
-	inc draw_shifted_arrow.x
-	inc draw_shifted_arrow.angle
-	pause 10
-	jmp poop
-	*/
-	mva #2 level
 	mva #$b0 levaccent ;green
 	load_level
 	process_leveldata
@@ -270,15 +262,16 @@ nozero	sta gameVbi.darkone
 @	txa
 	ora levaccent
 	sta gameVbi.accent
-	txa
+/*	txa
 	sub #$8
 	bpl nozero
 	lda #0
 nozero	sta gameVbi.darkone
-	
+*/
 	pause 1
 	dex
-	bpl @-
+	cpx #6
+	bne @-
 	rts
 .endp	
 	
@@ -328,6 +321,13 @@ x1	ldy bspframes,x
 	jmp x1
 	
 nextlevel	fadeout
+	inc level
+	pla
+	pla
+	pla
+	pla
+	jmp levelinit
+	
 done	mva #-1 hit
 	mva #0 phase
 	;orbit animation can start asynchronously
@@ -1200,6 +1200,8 @@ pldata	dta $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
 	ldy #0
 	sty dots
 	sty arrows
+	sty x
+	sty y
 @	lda (w1),y
 	beq next
 	a_lt #6 setarrow
