@@ -160,7 +160,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #0 level
+	mva #3 level
 
 levelinit
 	ldx #0
@@ -527,12 +527,13 @@ none	;mva #$be gameVbi.levaccent
 .proc	nextdot
 	dec current
 	bmi leveldone
-	ldx process_leveldata.dots
+	ldx process_leveldata.dots	;number of dots in the level
 @	dex
 	bmi leveldone
 	lda dots_array.number,x
 	cmp current
 	bne @-
+	stx index
 	lda dots_array.x,x 
 	lsr @	;half the x-resolution
 	sta dotx
@@ -555,6 +556,7 @@ leveldone	;mva #$00 colpf0+2
 	jmp nextdot
 .endp	
 current	dta 0
+index	dta 0
 .endp
 	
 .proc	load_level
@@ -584,7 +586,7 @@ out	mva (w1),y leveldata+$200	;last byte
 	ldx process_leveldata.arrows
 	dex
 	stx count
-	ldx nextdot.current 
+	ldx nextdot.index 
 	
 	lda dots_array.x,x
 	sta atan2.x2
