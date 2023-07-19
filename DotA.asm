@@ -291,41 +291,53 @@ x0	rts
 .endp
 
 .proc	animate_hit
-	lda phase
-	cmp #17
-	bne @+
-	mva #5 phase
-@	asl @
-	asl @
-	sta tmp
-	asl @
-	add tmp
-	tax
-	lda aniy
-	add #pmg.draw_player.topshift+2
-	tay
-	lda anix 
-	add #63+1
+	;boom - 5 frames, pause 4, spawn 5 frames pause 4,pause 50, spawn reversed 5 frames, pause 4
+	ldx phase
+x1	ldy bspframes,x
+	
+	lda bspxposes,x
+	add anix 
 	sta gamedli.dotxpos
 	
+	lda aniy
+	add #pmg.draw_player.topshift+2
+	tax	
+	
 	mva #11 rpt
-@	mva boom.SPR_1_FRM_1,x mypmbase+$100,y
+@	mva boom.SPR_1_FRM_1,y mypmbase+$100,x
 	inx
 	iny
 	dec rpt
 	bpl @-
 	inc phase
-	lda phase
-	cmp #5
-	bne x0
-	nextdot
+	pause 3
+	ldx phase
+	cpx #15
+	beq done
+	cpx #10
+	bne x1
+	pause 100
+	lda nextdot.current
+	beq nextlevel
+	jmp x1
 	
+nextlevel	jmp *
+done	mva #-1 hit
+	mva #0 phase
+	;orbit animation can start asynchronously
+	nextdot	
 x0	rts
 phase	dta -1
 tmp	dta 0
 rpt	dta 0
 anix	dta 0
 aniy	dta 0
+
+.proc	orbiting
+	ldx phase
+	;;todo
+	rts
+.endp
 
 ;dot type taken from nextdot
 .proc	init
@@ -346,7 +358,13 @@ aniy	dta 0
 
 s24	;last item of 24s in row
 :6	dta #*24+23
-
+bspframes	;boom+spawn+spawn reversed frames
+:5	dta #*12		;boom
+:5	dta [9-#]*12	;spawn 
+:5	dta [5+#]*12	;spawn reversed
+bspxposes	
+:5	dta 64
+:10	dta 64+3
 ;animation: boom -> spawn reversed, pause, spawn -> orbit
 
 .local	boom
@@ -357,22 +375,7 @@ SPR_1_FRM_4	dta $00, $08, $20, $02, $80, $19, $18, $98, $01, $40, $04, $10
 SPR_1_FRM_5	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00, $00
 .endl
 
-.local	orbit
-SPR_1_FRM_0	dta $00, $00, $00, $00, $00, $18, $1a, $1a, $00, $00, $00, $00
-SPR_1_FRM_1	dta $00, $00, $00, $02, $02, $18, $18, $18, $00, $00, $00, $00
-SPR_1_FRM_2	dta $00, $04, $04, $00, $00, $18, $18, $18, $00, $00, $00, $00
-SPR_1_FRM_3	dta $00, $08, $08, $00, $00, $18, $18, $18, $00, $00, $00, $00
-SPR_1_FRM_4	dta $00, $20, $20, $00, $00, $18, $18, $18, $00, $00, $00, $00
-SPR_1_FRM_5	dta $00, $00, $00, $40, $40, $18, $18, $18, $00, $00, $00, $00
-SPR_1_FRM_6	dta $00, $00, $00, $00, $00, $58, $58, $18, $00, $00, $00, $00
-SPR_1_FRM_7	dta $00, $00, $00, $00, $00, $18, $18, $58, $40, $00, $00, $00
-SPR_1_FRM_8	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $20, $20
-SPR_1_FRM_9	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $08, $08
-SPR_1_FRM_10	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $04, $04
-SPR_1_FRM_11	dta $00, $00, $00, $00, $00, $18, $18, $18, $02, $02, $00, $00
-.endl
-
-;letter spawn
+;letter reversed spawn
 .local 	spawn
 SPR_1_FRM_0 	dta $00, $00, $04, $0e, $0e, $db, $db, $df, $1f, $1b, $00, $00
 SPR_1_FRM_1	dta $00, $00, $00, $04, $0e, $df, $db, $df, $0e, $00, $00, $00
@@ -398,7 +401,28 @@ lete	dta $00, $00, $1f, $1f, $18, $de, $de, $d8, $1f, $1f, $00, $00
 letf	dta $00, $00, $1f, $1f, $18, $dc, $dc, $d8, $18, $18, $00, $00
 	dta $00, $00, $00, $1f, $1f, $df, $dc, $d8, $18, $00, $00, $00
 
+letg	dta $00, $00, $0e, $1f, $1b, $d8, $db, $db, $1f, $0f, $00, $00
+	dta $00, $00, $00, $0e, $1f, $df, $dc, $df, $0f, $00, $00, $00
+
+leth	dta $00, $00, $1b, $1b, $1b, $df, $df, $db, $1b, $1b, $00, $00
+	dta $00, $00, $00, $1e, $1e, $de, $de, $de, $1e, $00, $00, $00
 .endl
+.local	orbit
+SPR_1_FRM_0	dta $00, $00, $00, $00, $00, $18, $1a, $1a, $00, $00, $00, $00
+SPR_1_FRM_1	dta $00, $00, $00, $02, $02, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_2	dta $00, $04, $04, $00, $00, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_3	dta $00, $08, $08, $00, $00, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_4	dta $00, $20, $20, $00, $00, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_5	dta $00, $00, $00, $40, $40, $18, $18, $18, $00, $00, $00, $00
+SPR_1_FRM_6	dta $00, $00, $00, $00, $00, $58, $58, $18, $00, $00, $00, $00
+SPR_1_FRM_7	dta $00, $00, $00, $00, $00, $18, $18, $58, $40, $00, $00, $00
+SPR_1_FRM_8	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $20, $20
+SPR_1_FRM_9	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $08, $08
+SPR_1_FRM_10	dta $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $04, $04
+SPR_1_FRM_11	dta $00, $00, $00, $00, $00, $18, $18, $18, $02, $02, $00, $00
+.endl
+
+
 .endp
 
 	
