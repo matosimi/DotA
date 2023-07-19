@@ -32,7 +32,13 @@ ant	dta $70
 
 scr	ins "title.scr"
 
-	.ds 16*40
+;	.ds 16*40
+;.local	ntsc_color_convert
+	.use DLI,NMI
+coloramount	equ 23
+clrtab	
+:coloramount	dta a(c:1)
+;.endl
 
 	.ALIGN $0400
 fnt	ins "title.fnt"
@@ -54,6 +60,22 @@ main
 	mva >pmg pmbase		;missiles and players data address
 	mva #$03 pmcntl		;enable players and missiles
 	eif
+
+	;convert colors to NTSC if ntsc detected
+.local	ntsc_color_convert
+	ldx #coloramount
+	mwa #clrtab w1
+@	txa
+	asl @
+	tay
+	mwa (w1),y w2
+	ldy #1
+	lda (w2),y
+	jsr getcolor.pptr 
+	sta (w2),y
+	dex
+	bpl @-
+.endl
 
 	lda:cmp:req $14		;wait 1 frame
 

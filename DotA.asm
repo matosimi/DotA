@@ -1,6 +1,6 @@
 ;DotA by matosimi 2023
 
-debug_skip_title = 1
+debug_skip_title = 0
 debug_level = 1	;1 uses levxx.dat
 debug_visible_dot = 1
 
@@ -127,6 +127,7 @@ start
 	sei
 	detect_stereo
 	detect_video_system
+	;todo: modify dli colors with getcolor
 	mva #1 580	;boot on reset
 	
 	ift debug_skip_title == 0
@@ -173,7 +174,8 @@ levelinit
 	
 	print_level	
 	
-	mva #$b0 levaccent ;green
+	getcolor #$b0
+	sta levaccent ;green
 	load_level
 	process_leveldata
 	nextdot.init
@@ -1046,7 +1048,7 @@ GET_BYTE	lda ZX7_INPUT:$ffff
 PUT_BYTE	sta ZX7_OUTPUT:$ffff
 	inw ZX7_OUTPUT
 	rts
-.print "unzx7 length: ",*-unzx7
+;.print "unzx7 length: ",*-unzx7
 .endp	
 
 
@@ -1401,7 +1403,7 @@ arrow4	ins "arr4_data2.mic",0,$1000
 arrow5	ins "arr5_data2.mic",0,$1000
 
 title	dta d'      .A         '
-infobar   dta d' LEVEL: 00  TRIES: 05  TIME: 22'
+infobar   dta d' LEVEL: 00  TRIES: 00  TIME: 00'
 :96	dta 0
 	dta d'X'
 
