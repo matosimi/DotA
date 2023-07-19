@@ -1,7 +1,8 @@
 ;DotA by matosimi 2023
 
 debug_skip_title = 1
-
+debug_level = 1	;1 uses levxx.dat
+debug_visible_dot = 1
 
 color0	equ $2fc
 hposp0	equ $d000
@@ -160,7 +161,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #3 level
+	mva #0 level
 
 levelinit
 	ldx #0
@@ -169,6 +170,8 @@ levelinit
 :24	sta vram+#*$100,x
 	dex
 	bne @-
+	
+	print_level	
 	
 	mva #$b0 levaccent ;green
 	load_level
@@ -537,7 +540,24 @@ none	;mva #$be gameVbi.levaccent
 	lda dots_array.x,x 
 	lsr @	;half the x-resolution
 	sta dotx
-	mva dots_array.y,x doty	
+	mva dots_array.y,x doty
+	
+	ift debug_visible_dot == 1
+	lda dotx
+	add #64
+	sta hposp0+2
+	ldx #0
+	txa
+@	sta mypmbase+$200,x
+	dex
+	bne @-
+	lda doty
+	add #pmg.draw_player.topshift+2+5
+	tax
+	lda #%00011000
+:3	sta mypmbase+$200+:1,x
+	mva #$1a colpm0+2
+	eif	
 	rts
 leveldone	;mva #$00 colpf0+2
 	fadeout
@@ -560,10 +580,23 @@ index	dta 0
 .endp
 	
 .proc	load_level
-	mwa #leveldata ptr
+	ift debug_level == 0
+	
+	mwa #leveldata unzx7.ZX7_OUTPUT
 	ldx level
-	mva levels.low,x w1
-	mva levels.high,x w1+1
+	mva levels.low,x unzx7.ZX7_INPUT
+	mva levels.high,x unzx7.ZX7_INPUT+1
+	unzx7
+	rts
+	
+	els
+	
+	mwa #leveldata ptr
+	;ldx level
+	;mva levels.low,x w1
+	;mva levels.high,x w1+1
+	mwa #levels.levelxx w1
+	
 	ldx #2	;levelsize $280
 	ldy #0
 @	lda (w1),y
@@ -580,6 +613,7 @@ index	dta 0
 	
 out	mva (w1),y leveldata+$200	;last byte
 	rts
+	eif
 .endp
 	
 .proc	draw_level
@@ -1196,6 +1230,22 @@ pldata	dta $24, $66, $42, $00, $00, $00, $00, $00, $42, $66, $24
 .endp
 .endl
 
+.proc	print_level
+	ldx #0
+	lda level
+@	a_lt #10 x1
+	sub #10
+	inx
+	bne @-
+	
+x1	ora #$10
+	sta infobar+9
+	txa
+	ora #$10
+	sta infobar+8
+	rts
+.endp
+
 .proc	process_leveldata
 	mwa #leveldata w1
 	mva #2 page
@@ -1357,15 +1407,34 @@ infobar   dta d' LEVEL: 00  TRIES: 05  TIME: 22'
 
 
 .local	levels
-.rept 4,#
-l0:1	ins "levels\lev0:1.dat"
+	ift debug_level == 1
+levelxx	ins "levels\levxx.dat"
+	eif
+
+sets	equ 5	;5 sets of 4 levels
+
+.rept sets
+?i = #
+.rept 4,#,?i
+l:2:1	ins "levels\zx7\lev:2:1.dat.zx7"
+.endr
 .endr
 
 high
-:4	dta h(l0:1)
+.rept sets
+?i = #
+.rept 4,#,?i
+	dta h(l:2:1)
+.endr
+.endr
 
 low
-:4	dta l(l0:1)
+.rept sets
+?i = #
+.rept 4,#,?i
+	dta l(l:2:1)
+.endr
+.endr
 
 .endl
 
