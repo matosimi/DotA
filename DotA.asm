@@ -162,7 +162,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #7 level
+	mva #9 level
 
 levelinit
 	ldx #0
@@ -1459,7 +1459,7 @@ angle
 .endp
 	
 routtab	
-.rept 2 ;levels.sets
+.rept 3 ;levels.sets
 ?i = #
 .rept 4,#,?i
 	dta a(l:2:1)
@@ -1530,6 +1530,44 @@ x2	mva #0 phase
 phase 	dta 0
 phase2	dta 0
 .endl
+
+.local	l20	;up,down (4, 5)
+	inc phase
+	lda phase
+	a_ge #112*2 zero
+	a_ge #112 down
+	;up
+	dec arrows_array.y+4
+	dec arrows_array.y+5
+	rts
+down	inc arrows_array.y+4
+	inc arrows_array.y+5
+	rts
+zero	mva #0 phase
+	rts
+	
+phase	dta 0
+.endl
+
+.local	l21
+	inc phase
+	ldx phase
+	lda sin64,x
+	add #56
+	sta dots_array.x
+	lda sin64+64,x
+	add #8
+	sta dots_array.y
+	rts
+phase	dta 0
+.endl
+
+;SIN(centre,amp,size[,first,last])
+sin64	dta sin(64,48,255,0,255+64)
+
+l22
+l23	rts
+
 
 .endp
 	.align $100
