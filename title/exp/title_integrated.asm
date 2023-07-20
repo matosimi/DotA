@@ -35,9 +35,11 @@ scr	ins "title.scr"
 ;	.ds 16*40
 ;.local	ntsc_color_convert
 	.use DLI,NMI
-coloramount	equ 23
+coloramount	equ 24
 clrtab	
 :coloramount	dta a(c:1)
+coloramount2	equ 7
+	dta a(gamedli.colgtia0-1,gamedli.colgtia1-1,gamedli.colgtia2-1,gameDli.colplayer-1,gameDli.coldot-1,gamedli.colstatus-1,gameVbi.accent-1)
 ;.endl
 
 	.ALIGN $0400
@@ -63,7 +65,7 @@ main
 
 	;convert colors to NTSC if ntsc detected
 .local	ntsc_color_convert
-	ldx #coloramount
+	ldx #coloramount+coloramount2
 	mwa #clrtab w1
 @	txa
 	asl @

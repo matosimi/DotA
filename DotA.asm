@@ -883,11 +883,13 @@ vbi	inc 20
 	mva darkone:#$08 colpf0+1
 	mva #1 prior
 	mva >txtfnt chbase
+	mwa #gameDli.dli dli_ptr
 	pla
 	rti
 .endl	
 
 .local	gameDli
+;gtia line + playfield 
 dli	pha
 	sta wsync
 	mva #$03 sizep0
@@ -897,7 +899,7 @@ dli	pha
 	mva #0 colpm0
 	sta colpm0+1
 	sta wsync
-	mva #$40 colpf0+4
+	mva colgtia0:#$40 colpf0+4
 	mva #$41 prior
 	sta wsync
 	mva #1 prior
@@ -906,8 +908,50 @@ dli	pha
 	sta sizep0+1
 	mva playerxpos:#1 hposp0
 	mva dotxpos:#1 hposp0+1
-	mva #$78 colpm0
-	mva #$38 colpm0+1
+	mva colplayer:#$78 colpm0
+	mva coldot:#$38 colpm0+1
+	mwa #dli2 dli_ptr
+	pla
+	rti
+	
+;gtia line + status 	
+dli2	pha
+	sta wsync
+	mva #$03 sizep0
+	sta sizep0+1
+	mva #$20 hposp0
+	mva #$c0 hposp0+1
+	mva #0 colpm0
+	sta colpm0+1
+	sta wsync
+	mva colgtia1:#$40 colpf0+4
+	mva #$41 prior
+	mva #$06 colpf0+1
+	mva colstatus:#$2c colpf0+2	;color of statusbar
+	sta wsync
+	mva #1 prior
+	mva #$00 colpf0+4
+	sta sizep0
+	sta sizep0+1
+	mwa #dli3 dli_ptr
+	pla
+	rti
+
+;gtia line	
+dli3	pha
+	sta wsync
+	mva #$03 sizep0
+	sta sizep0+1
+	mva #$20 hposp0
+	mva #$c0 hposp0+1
+	mva #0 colpm0
+	sta colpm0+1
+	sta wsync
+	mva colgtia2:#$40 colpf0+4
+	mva #$41 prior
+	sta wsync
+	mva #1 prior
+	mva #$00 colpf0+4
 	pla
 	rti
 .endl
