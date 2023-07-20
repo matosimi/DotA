@@ -1,7 +1,7 @@
 ;DotA by matosimi 2023
 
-debug_skip_title = 0
-debug_level = 1	;1 uses levxx.dat
+debug_skip_title = 1
+debug_level = 0	;1 uses levxx.dat
 debug_visible_dot = 1
 
 color0	equ $2fc
@@ -147,7 +147,7 @@ start
 
 	mva #200 atan2.x2
 	mva #20 atan2.y2
-	mva #0 draw_shifted_arrow.angle
+	;mva #0 draw_shifted_arrow.angle
 	
 	pmg.init
 /*
@@ -162,7 +162,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #0 level
+	mva #7 level
 
 levelinit
 	ldx #0
@@ -183,6 +183,7 @@ levelinit
 	pmg.draw_gtia_overlay
 	fadein
 	mva #176 animate_hit.anix
+	dynamics.update
 	
 loop
 	control
@@ -281,13 +282,31 @@ nozero	sta gameVbi.darkone
 .endp	
 	
 .proc	environment
-	;hits
+	dynamics
+	update_dot_coords
+	
+	ift debug_visible_dot == 1
+	lda dotx
+	add #64
+	sta hposp0+2
+	ldx #0
+	txa
+@	sta mypmbase+$200,x
+	dex
+	bne @-
+	lda doty
+	add #pmg.draw_player.topshift+2+5
+	tax
+	lda #%00011000
+:3	sta mypmbase+$200+:1,x
+	mva #$1a colpm0+2
+	eif
+	
 	lda hit
-	bmi x0
+	bmi @+
 	animate_hit
-	;todo: take care of moving objects (dots/arrows)
 	rts
-x0	animate_hit.orbiting
+@	animate_hit.orbiting
 	rts
 .endp
 
@@ -297,10 +316,10 @@ x0	animate_hit.orbiting
 x1	ldy bspframes,x
 	
 	lda bspxposes,x
-	add anix 
+	add dotx 
 	sta gamedli.dotxpos
 	
-	lda aniy
+	lda doty
 	add #pmg.draw_player.topshift+2
 	tax	
 	
@@ -529,7 +548,23 @@ none	;mva #$be gameVbi.levaccent
 	rts 
 .endp
 
+.proc	update_dot_coords
+	ldx nextdot.index
+	lda dots_array.x,x 
+	lsr @	;half the x-resolution
+	sta dotx
+	mva dots_array.y,x doty
+	ldx nextdot.previndex
+	bmi x0
+	lda dots_array.x,x 
+	lsr @	;half the x-resolution
+	sta animate_hit.anix
+	mva dots_array.y,x animate_hit.aniy	
+x0	rts
+.endp
+
 .proc	nextdot
+	mva index previndex
 	dec current
 	bmi leveldone
 	ldx process_leveldata.dots	;number of dots in the level
@@ -575,10 +610,13 @@ leveldone	;mva #$00 colpf0+2
 	
 .proc	init
 	mva process_leveldata.dots current
+	mva #-1 previndex
+	sta index
 	jmp nextdot
 .endp	
 current	dta 0
 index	dta 0
+previndex	dta 0
 .endp
 	
 .proc	load_level
@@ -632,6 +670,7 @@ out	mva (w1),y leveldata+$200	;last byte
 loop	ldx count
 	lda arrows_array.x,x
 	sta atan2.x1
+	sta draw_shifted_arrow.x
 :3	lsr @
 	sta draw_arrow.xch
 	lda arrows_array.y,x
@@ -642,7 +681,7 @@ loop	ldx count
 	lda arrows_array.type,x
 	tax
 	mva arrowtype,x draw_arrow.type
-	draw_arrow
+	draw_shifted_arrow
 	
 	atan2
 	
@@ -729,12 +768,12 @@ angle	dta 0
 	sta mask12
 	mva mask_ri,x mask2
 	sta mask22
-	lda angle
+	lda draw_arrow.angle
 	lsr @
 	tay
 	mva angletabl,y w2
 	lda angletabh,y 
-	add type
+	add draw_arrow.type
 	sta w2+1
 		
 	lda shcount
@@ -763,7 +802,7 @@ angle	dta 0
 	;draw
 draw	lda x
 :3	lsr @
-	ldy y
+	ldy draw_arrow.y
 	add vramlinel,y
 	sta w1
 	lda vramlineh,y
@@ -814,11 +853,11 @@ shift_left
 	;draw2 - for left shifted
 draw2	lda x
 :3	lsr @
-	ldy y
+	ldy draw_arrow.y
 	add vramlinel,y
 	sta w1
 	lda vramlineh,y
-	adc type
+	adc draw_arrow.type
 	sta w1+1
 	
 	ldx #15
@@ -839,18 +878,18 @@ skipfirst	and mask12:#$ff
 	bpl @-
 	rts	
 	
-noshift	mva y draw_arrow.y
-	mva angle draw_arrow.angle
-	mva type draw_arrow.type
+noshift	;mva y draw_arrow.y
+	;mva angle draw_arrow.angle
+	;mva type draw_arrow.type
 	lda x
 :3	lsr @
 	sta draw_arrow.xch
 	jmp draw_arrow
 	
 x	dta 0
-y	dta 0
-type	dta 0
-angle	dta 0
+;y	dta 0
+;type	dta 0
+;angle	dta 0
 mask_le	dta 0,%01111111,%00111111,%00011111,%00001111,%00000111,%00000011,%00000001
 mask_ri	dta 0,%10000000,%11000000,%11100000,%11110000,%11111000,%11111100,%11111110
 .endp
@@ -1407,6 +1446,92 @@ angle
 :40	dta 0
 .endl
 
+;level dynamics
+.proc	dynamics
+	jmp address:l00
+	
+.proc	update
+	lda level
+	asl @
+	tax
+	mwa routtab,x address
+	rts
+.endp
+	
+routtab	
+.rept 2 ;levels.sets
+?i = #
+.rept 4,#,?i
+	dta a(l:2:1)
+.endr
+.endr
+
+l00
+l01
+l02
+l03	rts
+
+.local l10	;left/right
+	inc phase
+	lda phase 
+	bmi x1
+	ldx nextdot.index 
+	dec dots_array.x,x
+	rts
+	
+x1	ldx nextdot.index 
+	inc dots_array.x,x
+	rts
+zero	mva #0 phase
+	rts	
+	
+phase	dta 0
+.endl
+
+.local l11	;right/left
+	inc phase
+	lda phase 
+	a_ge #144 zero
+	a_ge #72 x1
+	ldx #0
+	;bne zero
+	inc dots_array.x,x
+	rts
+	
+x1	ldx #0 
+	;bne zero
+	dec dots_array.x,x
+	rts
+zero	mva #0 phase
+	rts	
+	
+phase	dta 0
+.endl
+l12	rts
+
+.local	l13	;left/right 2 arrows (0, 7)	
+hack	inc phase	;switching $ce,$ee
+	lda phase
+	a_ge #160 x1
+	inc arrows_array.x
+	dec arrows_array.x+7
+	rts
+x1	dec phase
+	inc phase2
+	lda phase2
+	a_ge #160 x2
+	dec arrows_array.x
+	inc arrows_array.x+7
+	rts
+x2	mva #0 phase
+	sta phase2
+	rts
+	
+phase 	dta 0
+phase2	dta 0
+.endl
+
+.endp
 	.align $100
 ingame_dl
 	dta $70,$70,$60+$80,$0,$4f,a(dark),0,$4f,a(brdr)
