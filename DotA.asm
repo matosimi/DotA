@@ -3,6 +3,7 @@
 debug_skip_title = 1
 debug_level = 0	;1 uses levxx.dat
 debug_visible_dot = 1
+debug_music_off = 0
 
 color0	equ $2fc
 hposp0	equ $d000
@@ -117,11 +118,30 @@ iniani
 	dta $ff, $c3, $c3, $f3, $c3, $cf, $c3, $ff
 	dta $ff, $c3, $c3, $c3, $f3, $cf, $c3, $ff
 	dta $ff, $c3, $c3, $c3, $c3, $ff, $c3, $ff	
-	
+*/	
 last
-*/
+
+copy_to_c000
+	pause 0
+	mva #$0 nmien 	;disable interrupts
+	mva #$fe portb	;turn off osrom and basic rom
+	ldy #0
+@
+:16	mva $4000+$100*#,y $c000+$100*#,y
+	dey
+	bne @-
+	mva #$ff portb	;turn on os rom and load
+	mva #$40 nmien	;enable vbi
+	rts
 .endl
 	ini init
+	
+	org $4000
+	ins 'dota_c000.rmt',6
+	
+	ini init.copy_to_c000 
+	
+	org init.last
 start
 	pause 0
 	sei
@@ -143,6 +163,11 @@ start
 	mwa #gameVbi.vbi vbi_ptr
 	mva #1+12+16+32 dmactl ;d400 = 559
 	mva #$c0 nmien ;c0
+
+	lda #0 ;songline	
+	ldx #$00
+	ldy #$c0	;song is always depacked to $c000
+	jsr rmt.rmt_init
 	
 
 	mva #200 atan2.x2
@@ -162,7 +187,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #9 level
+	mva #10 level
 
 levelinit
 	ldx #0
@@ -923,6 +948,18 @@ vbi	inc 20
 	mva #1 prior
 	mva >txtfnt chbase
 	mwa #gameDli.dli dli_ptr
+	
+	lda ntsc
+	bne vbpal
+	inc ntsctimer
+	lda ntsctimer
+	cmp #6
+	bne vbpal
+	mva #255 ntsctimer
+	jmp vbskip
+;pal
+vbpal
+vbskip
 	pla
 	rti
 .endl	
@@ -977,7 +1014,7 @@ dli2	pha
 	rti
 
 ;gtia line	
-dli3	pha
+dli3	phr
 	sta wsync
 	mva #$03 sizep0
 	sta sizep0+1
@@ -991,7 +1028,28 @@ dli3	pha
 	sta wsync
 	mva #1 prior
 	mva #$00 colpf0+4
-	pla
+
+	;music
+	lda ntsc
+	bne pal
+	lda ntsctimer
+	bmi frameskip
+pal
+	ift debug_music_off == 0 
+;		ift debug_vbi_meter == 1
+;		mva #$6a colpf0+4
+;		eif
+	;lda unpack_music_init.silence
+	;beq @+
+	jsr rmt.rmt_play
+	;jmp @+1
+;@	jsr rmt.rmt_silence
+;@	
+;		ift debug_vbi_meter == 1
+;		mva #$00 colpf0+4
+;		eif
+	eif
+frameskip	plr	
 	rti
 .endl
 	
@@ -1565,7 +1623,33 @@ phase	dta 0
 ;SIN(centre,amp,size[,first,last])
 sin64	dta sin(64,48,255,0,255+64)
 
-l22
+.local	l22	;circles (arr 0,4)
+	inc phase
+	ldx phase
+	txa
+	and #$01
+	bne @+
+	inc phase2
+@	ldy phase2
+	lda sin64,x
+	add #56
+	sta arrows_array.x
+	lda sin64,y
+	lsr @
+	add #56+32
+	sta arrows_array.x+4
+	lda sin64+64,x
+	add #8
+	sta arrows_array.y
+	lda sin64+64,y
+	lsr @
+	add #8+32
+	sta arrows_array.y+4
+	
+	rts
+phase	dta 0
+phase2	dta 0
+.endl
 l23	rts
 
 
@@ -1654,3 +1738,13 @@ txtfnt	ins 'text.fnt'
 .local	g2f
 	icl "title\exp\title_integrated.asm"
 .endl
+
+	.align $100
+	org *+$400
+.local	rmt
+PLAYER
+	icl "rmtplayr.a65"
+.endl	
+
+
+	
