@@ -2,8 +2,8 @@
 
 debug_skip_title = 1
 debug_level = 0	;1 uses levxx.dat
-debug_visible_dot = 1
-debug_music_off = 0
+debug_visible_dot = 0
+debug_music_off = 1
 
 color0	equ $2fc
 hposp0	equ $d000
@@ -187,7 +187,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #10 level
+	mva #09 level
 
 levelinit
 	ldx #0
@@ -336,6 +336,12 @@ nozero	sta gameVbi.darkone
 .endp
 
 .proc	animate_hit
+	;clean up whole player lines $20-$c4
+	ldx #$c4-$20
+	lda #0
+@	sta mypmbase+$100+$20,x
+	dex
+	bne @-
 	;boom - 5 frames, pause 4, spawn 5 frames pause 4,pause 50, spawn reversed 5 frames, pause 4
 	mvx #0 phase
 x1	ldy bspframes,x
@@ -399,19 +405,23 @@ aniy	dta 0
 	lda aniy
 	add #pmg.draw_player.topshift+2
 	tax
-/*	mva #11 rpt
-@	mva orbit,y mypmbase+$100,x
-	inx
-	iny
-	dec rpt
-	bpl @-*/
-:12	mva orbit+#,y mypmbase+$100+#,x
+	lda #0	;cleanup up/down 2px
+	sta mypmbase+$100-2,x
+	sta mypmbase+$100-1,x
+	sta mypmbase+$100+12,x
+	sta mypmbase+$100+13,x
+:12	mva orbit+#,y mypmbase+$100+#,x	;draw
+	inc flip
+	lda flip
+	lsr @
+	bcc x0
 	inc phase
 	lda phase
 	a_ge #12 zero
-	rts
+x0	rts
 zero	mva #0 phase
 	rts
+flip	dta 0
 .endp
 
 ;dot type taken from nextdot
