@@ -29,13 +29,13 @@ ant	dta $70
 	dta $70,$70,$F0,$C2,a(scr),$02,$02,$02,$02,$02,$82,$02,$82,$02,$02,$82,$02
 	dta $02,$70,$70
 	dta $42,a(lines)
-	dta $70,$70,$70,2
+	dta $70,$70,2,$70,$70,$70,2
 	dta $41,a(ant)
 
 scr	ins "title.scr"
 lines	dta d'       BY MARTIN SIMECEK        '
 	dta d'  ABBUC SOFTWARE CONTEST 2023   '
-
+	dta d'                           REV41'
 ;	.ds 16*40
 ;.local	ntsc_color_convert
 	.use DLI,NMI

@@ -3,7 +3,7 @@
 ;todo: funny stuff: level 10, arrow on the left, third from top changes its angle
 ;                   as the fast orbiter reaches top/bottom position
 
-debug_skip_title = 0
+debug_skip_title = 1
 debug_level = 0	;1 uses levxx.dat
 debug_visible_dot = 1
 debug_music_off = 1
@@ -190,7 +190,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #10 level
+	mva #11 level
 
 levelinit
 	ldx #0
@@ -1715,8 +1715,34 @@ sin64	dta sin(64,48,255,0,255+64)
 phase	dta 0
 phase2	dta 0
 .endl
-l23	rts
-
+.local	l23	;triangles (0 |\,2 /|) , diag \ 1
+	inc phase
+	lda phase
+	;triangles
+	a_ge #170 m3
+	a_ge #85 m2
+	inc dots_array.x
+	inc dots_array.y
+	dec dots_array.x+2
+	jmp diag
+m2	dec dots_array.x
+	inc dots_array.x+2
+	dec dots_array.y+2
+	jmp diag
+m3	dec dots_array.y
+	inc dots_array.y+2	
+	
+diag	ldx phase
+	lda sin64,x
+	add #56
+	sta dots_array.x+1
+	lda sin64,x
+	lsr @
+	add #40
+	sta dots_array.y+1
+	rts
+phase	dta 0
+.endl
 
 .endp
 	.align $100
