@@ -1,8 +1,11 @@
 ;DotA by matosimi 2023
 
-debug_skip_title = 1
+;todo: funny stuff: level 10, arrow on the left, third from top changes its angle
+;                   as the fast orbiter reaches top/bottom position
+
+debug_skip_title = 0
 debug_level = 0	;1 uses levxx.dat
-debug_visible_dot = 0
+debug_visible_dot = 1
 debug_music_off = 1
 
 color0	equ $2fc
@@ -34,7 +37,7 @@ nmien	equ $d40e
 nmist	equ $d40f
 
 
-zpshift		equ $20 ;$20 bytes
+zpshift		equ $20 ;$20 bytes (till $3f)
 shcount		equ $41	;shift count
 
 unzx7.token	equ $6e
@@ -187,7 +190,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #09 level
+	mva #10 level
 
 levelinit
 	ldx #0
@@ -692,6 +695,8 @@ out	mva (w1),y leveldata+$200	;last byte
 .endp
 	
 .proc	draw_level
+	;count the arrows and draw only as many as fits into frame
+	;next frame: continue
 	ldx process_leveldata.arrows
 	dex
 	stx count
@@ -712,7 +717,11 @@ loop	ldx count
 	sta atan2.y1
 	sta draw_arrow.y
 	
-	mva arrows_array.angle,x draw_arrow.angle
+	;lda arrows_array.special,x
+	;bmi @+
+	;inc draw_arrow.noclear	;set above+below cleaning for moving arrows
+		
+@	mva arrows_array.angle,x draw_arrow.angle
 	lda arrows_array.type,x
 	tax
 	mva arrowtype,x draw_arrow.type
@@ -783,11 +792,28 @@ tmp	dta 0
 	add16 #30 w1
 	dex
 	bpl @-
-	rts
+	/*
+	lda noclear
+	beq x0
+	;clear 1 line below
+	lda #$ff
+	sta (w1),y
+	iny
+	sta (w1),y
+	;sub1616 #32*18+30 w1	;clear 1 line above
+	sbw w1 #32*18+1
+	lda #$ff
+	sta (w1),y
+	iny
+	sta (w1),y
+	lda #0
+	sta noclear */
+x0	rts
 xch	dta 0
 y	dta 0
 type	dta 0
 angle	dta 0
+noclear	dta 0 
 
 
 .endp
@@ -858,6 +884,21 @@ draw	lda x
 	add16 #30 w1
 	dex
 	bpl @-
+	;clear 1 line below
+	/*
+	lda #0
+	sta (w1),y
+	iny
+	sta (w1),y
+	iny
+	sta (w1),y
+	add16 #30 w1
+	lda #$00
+	sta (w1),y
+	iny
+	sta (w1),y
+	iny
+	sta (w1),y */
 	rts	
 
 		
@@ -911,6 +952,20 @@ skipfirst	and mask12:#$ff
 	add16 #30 w1
 	dex
 	bpl @-
+	;clear 1 line below
+	/*lda #$00
+	sta (w1),y
+	iny
+	sta (w1),y
+	iny
+	sta (w1),y
+	add16 #30 w1
+	lda #$00
+	sta (w1),y
+	iny
+	sta (w1),y
+	iny
+	sta (w1),y */
 	rts	
 	
 noshift	;mva y draw_arrow.y

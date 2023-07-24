@@ -27,10 +27,14 @@ HEIGHT	= 30
 	;org $2000
 ant	dta $70
 	dta $70,$70,$F0,$C2,a(scr),$02,$02,$02,$02,$02,$82,$02,$82,$02,$02,$82,$02
-	dta $02,$70,$70,$70,$70,$70,$70,$70,$70,$70,$70,$70,$70
+	dta $02,$70,$70
+	dta $42,a(lines)
+	dta $70,$70,$70,2
 	dta $41,a(ant)
 
 scr	ins "title.scr"
+lines	dta d'       BY MARTIN SIMECEK        '
+	dta d'  ABBUC SOFTWARE CONTEST 2023   '
 
 ;	.ds 16*40
 ;.local	ntsc_color_convert
@@ -300,7 +304,11 @@ c22	lda #$02
 c23	lda #$06
 	sta wsync		;line=143
 	sta color1
-
+;added:
+	mva #$0c color1
+	mva #$00 color2
+	mva >txtfnt chbase
+	
 	lda regA
 	ldx regX
 	rti
