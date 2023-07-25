@@ -3,6 +3,12 @@
 ;todo: funny stuff: level 10, arrow on the left, third from top changes its angle
 ;                   as the fast orbiter reaches top/bottom position
 
+;it's invisble
+;you can't see it
+;but all the arrows are pointing at it
+;find it
+;get it
+;...until it's too late
 debug_skip_title = 1
 debug_level = 0	;1 uses levxx.dat
 debug_visible_dot = 1
@@ -190,7 +196,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #13 level
+	mva #15 level
 
 levelinit
 	ldx #0
@@ -1809,9 +1815,79 @@ phase	dta 0
 phase2	dta 160
 phase3	dta 128
 .endl	
-l32
-l33
+
+.local	l32	;0 rect
+	lda nextdot.current
+	cmp #0
+	bne x0
+	ldx rindex
+	lda rphase,x
+	a_ge bounds,x next
+	inc rphase,x
+	jmp handler:right
+next	mva #0 rphase,x
+	inx
+	cpx #4
+	bne newhandler
+	ldx #0 
+newhandler
+	stx rindex
+	txa
+	asl @
+	tax
+	mwa handlers,x handler
+x0	rts		
+
+right	inc dots_array.x
 	rts
+up	dec dots_array.y
+	rts
+left	dec dots_array.x
+	rts
+down	inc dots_array.y
+	rts
+rindex	dta 0
+rphase	dta 0,0,0,0
+bounds	dta 68,104,68,104
+handlers	dta a(right,down,left,up)
+.endl
+
+.local	l33	;circles (arr 2,3)
+	inc phase
+	ldx phase
+	txa
+	and #$01
+	bne @+
+	inc phase2
+@	ldy phase2
+	lda sin64,x
+	add #56
+	sta arrows_array.x+2
+	lda sin64,y
+	lsr @
+	add #56+32
+	sta arrows_array.x+3
+	lda sin64+64,x
+	add #8
+	sta arrows_array.y+2
+	lda sin64+64,y
+	lsr @
+	add #8+32
+	sta arrows_array.y+3
+	
+	lda nextdot.current
+	bne x0
+	inc phase3
+	;lda phase3
+	bmi down
+	dec dots_array.y+3
+	rts
+down	inc dots_array.y+3	
+x0	rts
+phase	dta 0
+phase2	dta 0
+phase3	dta 0
+.endl	
 
 .endp
 	.align $100
