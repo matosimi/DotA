@@ -190,7 +190,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #11 level
+	mva #13 level
 
 levelinit
 	ldx #0
@@ -1582,7 +1582,7 @@ angle
 .endp
 	
 routtab	
-.rept 3 ;levels.sets
+.rept 4 ;levels.sets
 ?i = #
 .rept 4,#,?i
 	dta a(l:2:1)
@@ -1743,6 +1743,75 @@ diag	ldx phase
 	rts
 phase	dta 0
 .endl
+
+.local	l30	;0,1 - LR, 2-rect
+	inc phase
+	lda phase
+	bmi back
+	inc dots_array.x
+	dec dots_array.x+1
+	jmp rect	
+back	dec dots_array.x
+	inc dots_array.x+1
+rect	ldx rindex
+	lda rphase,x
+	a_ge bounds,x next
+	inc rphase,x
+	jmp handler:up
+next	mva #0 rphase,x
+	inx
+	cpx #4
+	bne newhandler
+	ldx #0 
+newhandler
+	stx rindex
+	txa
+	asl @
+	tax
+	mwa handlers,x handler
+	rts		
+
+right	inc dots_array.x+2
+	rts
+up	dec dots_array.y+2
+	rts
+left	dec dots_array.x+2
+	rts
+down	inc dots_array.y+2
+	rts
+phase	dta 0
+rindex	dta 0
+rphase	dta 0,0,0,0
+bounds	dta 60,160,60,160
+handlers	dta a(up,right,down,left)
+.endl
+.local	l31	;lr 0,1,2
+	inc phase
+	inc phase2
+	inc phase3
+	lda phase
+	bmi min1
+	inc dots_array.x
+	jmp two
+min1	dec dots_array.x
+two	lda phase2
+	bmi min2
+	inc dots_array.x+1
+	jmp three
+min2	dec dots_array.x+1
+three	lda phase3
+	bmi min3
+	inc dots_array.x+2
+	rts
+min3	dec dots_array.x+2
+	rts
+phase	dta 0
+phase2	dta 160
+phase3	dta 128
+.endl	
+l32
+l33
+	rts
 
 .endp
 	.align $100
