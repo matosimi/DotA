@@ -12,7 +12,7 @@
 debug_skip_title = 1
 debug_level = 0	;1 uses levxx.dat
 debug_visible_dot = 1
-debug_music_off = 1
+debug_music_off = 0
 
 color0	equ $2fc
 hposp0	equ $d000
@@ -196,7 +196,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #10 level
+	mva #13 level
 
 levelinit
 	ldx #0
@@ -701,11 +701,22 @@ out	mva (w1),y leveldata+$200	;last byte
 .endp
 	
 .proc	draw_level
+arrows_per_frame	equ 15	;todo fix: these resumed drawings seem to be lagging 
 	;count the arrows and draw only as many as fits into frame
+	lda continue
+	bmi no_resume
+	tax
+	mva #-1 continue
+	jmp resume
 	;next frame: continue
-	ldx process_leveldata.arrows
+no_resume	ldx process_leveldata.arrows	;calculate if processing is split between 2 frames
 	dex
-	stx count
+	x_lt #arrows_per_frame resume
+	txa
+	sub #arrows_per_frame
+	sta continue
+	
+resume	stx count
 	ldx nextdot.index 
 	
 	lda dots_array.x,x
@@ -763,11 +774,14 @@ half	lsr @
 	add:sta arrows_array.angle,x	
 	
 next	dec count
-	bpl loop
+	lda count
+	cmp continue
+	bne loop
 	
 	rts
 count	dta 0
 tmp	dta 0
+continue	dta -1
 ;curdot	dta 0
 .endp
 	
