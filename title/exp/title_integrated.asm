@@ -35,7 +35,7 @@ ant	dta $70
 scr	ins "title.scr"
 lines	dta d'       BY MARTIN SIMECEK        '
 	dta d'  ABBUC SOFTWARE CONTEST 2023   '
-	dta d'                           REV41'
+	dta d'                           REV46'
 ;	.ds 16*40
 ;.local	ntsc_color_convert
 	.use DLI,NMI

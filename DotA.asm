@@ -45,7 +45,8 @@ nmist	equ $d40f
 
 zpshift		equ $20 ;$20 bytes (till $3f)
 shcount		equ $41	;shift count
-
+tries		equ $42
+sectimer		equ $43
 unzx7.token	equ $6e
 unzx7.lenL	equ $6f	
 octant		equ $70	;tmp var for atan2
@@ -196,7 +197,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #13 level
+	mva #00 level
 
 levelinit
 	ldx #0
@@ -212,18 +213,22 @@ levelinit
 	sta levaccent ;green
 	load_level
 	process_leveldata
+	print_tries
 	nextdot.init
 	mva #-1 hit
 	pmg.draw_gtia_overlay
 	fadein
 	mva #176 animate_hit.anix
 	dynamics.update
-	
+	mva #$16 infobar+29	;reset time
+	mva #$10 infobar+30
+	mva #50 sectimer
 loop
 	control
 	pmg.draw_player
 	environment
 	draw_level
+	dec_time
 	pause 0
 	jmp loop
 /*	
@@ -573,22 +578,27 @@ hitbox	lda xpos
 	add #2-1
 	sbc dotx
 	cmp #2+2-1	;w1+w2-1
-	bcs joy ;none
+	bcs none ;joy ;none
 	
 	lda doty
 	add #2+4-1
 	sbc ypos
 	cmp #3+2-2	;h1+h2-1
-	bcs joy ;none
+	bcs none ;joy ;none
 	
 	
 	animate_hit.init
 	
-	;mva #4 animate_hit.phase
-	;mva #$02 gameVbi.levaccent
+	mva #4 animate_hit.phase
+	;mva #$02 levaccent
 	rts
 		
-none	;mva #$be gameVbi.levaccent
+none	dec tries
+	getcolor #$26
+	sta gameVbi.accent
+	pause 10
+	print_tries
+	mva #$be gameVbi.accent
 	rts 
 .endp
 
@@ -702,7 +712,7 @@ out	mva (w1),y leveldata+$200	;last byte
 	
 .proc	draw_level
 arrows_per_frame	equ 15	;todo fix: these resumed drawings seem to be lagging 
-	;count the arrows and draw only as many as fits into frame
+	;count the arrows and draw only as many as fit into frame
 	lda continue
 	bmi no_resume
 	tax
@@ -1045,6 +1055,7 @@ vbi	pha
 ;pal
 vbpal
 	inc 20	;this will sync the ntsc/pal speed
+	dec sectimer
 vbskip
 	pla
 	rti
@@ -1475,6 +1486,32 @@ x1	ora #$10
 	rts
 .endp
 
+.proc	print_tries
+	lda tries
+	ora #$10
+	sta infobar+20
+	rts
+.endp
+
+.proc	dec_time
+	lda sectimer
+	bpl x0
+	lda infobar+30
+	cmp #$10
+	bne dec01
+	lda infobar+29
+	cmp #$10
+	beq endgame
+	dec infobar+29
+	mva #$19 infobar+30
+	mva #50 sectimer
+x0	rts
+dec01	dec infobar+30
+	mva #50 sectimer
+	rts
+endgame	jmp *	
+.endp
+
 .proc	process_leveldata
 	mwa #leveldata w1
 	mva #2 page
@@ -1508,7 +1545,11 @@ next2	inc x
 	inc y
 	mva #0 x	
 noincy2	iny
-	bpl @-		
+	bpl @-	
+	
+	ldx dots
+	inx
+	stx tries	
 	rts
 	
 ;set dot
