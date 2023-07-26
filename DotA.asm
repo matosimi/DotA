@@ -196,7 +196,7 @@ start
 :16	mva #$ff mypmbase+$100*?x+#+50
 .endr
 	*/
-	mva #15 level
+	mva #10 level
 
 levelinit
 	ldx #0
@@ -825,6 +825,7 @@ noclear	dta 0
 .endp
 
 .proc	draw_shifted_arrow
+;todo fix: shifing last type (ship) causes writes to program memory
 	lda x
 	and #$07
 	jeq noshift
@@ -1012,8 +1013,7 @@ vramlineh
 .endr
 	
 .local 	gameVbi
-vbi	inc 20
-	pha
+vbi	pha
 	mva accent:#$be colpf0+2	;color accent can vary
 	mva darkone:#$08 colpf0+1
 	mva #1 prior
@@ -1030,6 +1030,7 @@ vbi	inc 20
 	jmp vbskip
 ;pal
 vbpal
+	inc 20	;this will sync the ntsc/pal speed
 vbskip
 	pla
 	rti
@@ -1584,7 +1585,14 @@ angle
 	asl @
 	tax
 	mwa routtab,x address
-	rts
+	;level initialization routine is -3 bytes
+	lda routtab,x
+	sub #3
+	sta initialize
+	lda routtab+1,x
+	sbc #0
+	sta initialize+1
+	jmp initialize:$fff
 .endp
 	
 routtab	
@@ -1595,11 +1603,16 @@ routtab
 .endr
 .endr
 
+;init for these 4 levels
+	nop
+	nop
+	nop
 l00
 l01
 l02
 l03	rts
-
+	
+	jmp l10.zero	;init
 .local l10	;left/right
 	inc phase
 	lda phase 
@@ -1617,6 +1630,7 @@ zero	mva #0 phase
 phase	dta 0
 .endl
 
+	jmp l11.zero
 .local l11	;right/left
 	inc phase
 	lda phase 
@@ -1638,6 +1652,7 @@ phase	dta 0
 .endl
 l12	rts
 
+	jmp l13.x2
 .local	l13	;left/right 2 arrows (0, 7)	
 hack	inc phase	;switching $ce,$ee
 	lda phase
@@ -1655,11 +1670,12 @@ x1	dec phase
 x2	mva #0 phase
 	sta phase2
 	rts
-	
+		
 phase 	dta 0
 phase2	dta 0
 .endl
 
+	jmp l20.zero
 .local	l20	;up,down (4, 5)
 	inc phase
 	lda phase
@@ -1678,6 +1694,7 @@ zero	mva #0 phase
 phase	dta 0
 .endl
 
+	jmp l21.init
 .local	l21
 	inc phase
 	ldx phase
@@ -1688,12 +1705,16 @@ phase	dta 0
 	add #8
 	sta dots_array.y
 	rts
+	
+init	mva #0 phase
+	rts
 phase	dta 0
 .endl
 
 ;SIN(centre,amp,size[,first,last])
 sin64	dta sin(64,48,255,0,255+64)
 
+	jmp l22.init
 .local	l22	;circles (arr 0,4)
 	inc phase
 	ldx phase
@@ -1716,11 +1737,16 @@ sin64	dta sin(64,48,255,0,255+64)
 	lsr @
 	add #8+32
 	sta arrows_array.y+4
-	
 	rts
+init	mva #0 phase
+	sta phase2
+	rts	
+	
 phase	dta 0
 phase2	dta 0
 .endl
+
+	jmp l23.init
 .local	l23	;triangles (0 |\,2 /|) , diag \ 1
 	inc phase
 	lda phase
@@ -1747,9 +1773,12 @@ diag	ldx phase
 	add #40
 	sta dots_array.y+1
 	rts
+init	mva #0 phase
+	rts
 phase	dta 0
 .endl
 
+	jmp l30.init
 .local	l30	;0,1 - LR, 2-rect
 	inc phase
 	lda phase
@@ -1785,12 +1814,20 @@ left	dec dots_array.x+2
 	rts
 down	inc dots_array.y+2
 	rts
+	
+init	mva #0 phase
+	sta rindex
+:4	sta rphase+#	
+	mwa #up handler
+	rts
+	
 phase	dta 0
 rindex	dta 0
 rphase	dta 0,0,0,0
 bounds	dta 60,160,60,160
 handlers	dta a(up,right,down,left)
 .endl
+	jmp l31.init
 .local	l31	;lr 0,1,2
 	inc phase
 	inc phase2
@@ -1811,11 +1848,17 @@ three	lda phase3
 	rts
 min3	dec dots_array.x+2
 	rts
+	
+init	mva #0 phase
+	mva #160 phase2
+	mva #128 phase3
+	rts
 phase	dta 0
 phase2	dta 160
 phase3	dta 128
 .endl	
 
+	jmp l32.init
 .local	l32	;0 rect
 	lda nextdot.current
 	cmp #0
@@ -1846,12 +1889,20 @@ left	dec dots_array.x
 	rts
 down	inc dots_array.y
 	rts
+	
+init	lda #0 
+	sta rindex
+:4	sta rphase+#	
+	mwa #right handler
+	rts
+	
 rindex	dta 0
 rphase	dta 0,0,0,0
 bounds	dta 68,104,68,104
 handlers	dta a(right,down,left,up)
 .endl
 
+	jmp l33.init
 .local	l33	;circles (arr 2,3)
 	inc phase
 	ldx phase
@@ -1878,12 +1929,18 @@ handlers	dta a(right,down,left,up)
 	lda nextdot.current
 	bne x0
 	inc phase3
-	;lda phase3
+	lda phase3
 	bmi down
 	dec dots_array.y+3
 	rts
 down	inc dots_array.y+3	
 x0	rts
+
+init	mva #0 phase
+	sta phase2
+	sta phase3
+	rts
+	
 phase	dta 0
 phase2	dta 0
 phase3	dta 0
