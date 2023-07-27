@@ -573,7 +573,17 @@ down	inc ypos
 	rts
 		
 hitbox	lda xpos
-	add #2-1
+	add #2-1+2
+	sbc dotx
+	cmp #2+2-1+4	;w1+w2-1
+	bcs none ;joy ;none
+	
+	lda doty
+	add #2+4-1+3
+	sbc ypos
+	cmp #3+2-2+6	;
+	
+/*	add #2-1 ;this hitbox was too small for moving targets
 	sbc dotx
 	cmp #2+2-1	;w1+w2-1
 	bcs none ;joy ;none
@@ -581,7 +591,7 @@ hitbox	lda xpos
 	lda doty
 	add #2+4-1
 	sbc ypos
-	cmp #3+2-2	;h1+h2-1
+	cmp #3+2-2	;h1+h2-1*/
 	bcs none ;joy ;none
 	
 	

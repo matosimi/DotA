@@ -38,7 +38,7 @@ l3	dta a(lines3)
 scr	ins "title.scr"
 lines	dta d'       BY MARTIN SIMECEK        '
 lines2	dta d'  ABBUC SOFTWARE CONTEST 2023   '
-lines3	dta d'                           REV46'
+lines3	dta d'                           REV48'
 
 ;	.ds 16*40
 ;.local	ntsc_color_convert
