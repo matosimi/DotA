@@ -28,14 +28,18 @@ HEIGHT	= 30
 ant	dta $70
 	dta $70,$70,$F0,$C2,a(scr),$02,$02,$02,$02,$02,$82,$02,$82,$02,$02,$82,$02
 	dta $02,$70,$70
-	dta $42,a(lines)
-	dta $70,$70,2,$70,$70,$70,2
+	dta $42
+l1	dta a(lines)
+	dta $70,$70,$42
+l2	dta a(lines2),$70,$70,$70,$42
+l3	dta a(lines3)
 	dta $41,a(ant)
 
 scr	ins "title.scr"
 lines	dta d'       BY MARTIN SIMECEK        '
-	dta d'  ABBUC SOFTWARE CONTEST 2023   '
-	dta d'                           REV46'
+lines2	dta d'  ABBUC SOFTWARE CONTEST 2023   '
+lines3	dta d'                           REV46'
+
 ;	.ds 16*40
 ;.local	ntsc_color_convert
 	.use DLI,NMI
@@ -94,6 +98,13 @@ main
 
 	mva #$c0 nmien		;switch on NMI+DLI again
 
+	lda finale
+	bne @+
+	mwa #finish l1
+	mwa #lines2 l2
+	jsr rmt.rmt_silence
+	jmp *
+@
 	ift CHANGES		;if label CHANGES defined
 
 _lp	lda trig0		; FIRE #0
@@ -120,6 +131,19 @@ null	jmp DLI.dli1		;CPU is busy here, so no more routines allowed
 stop
 	.ifdef FADE_CHARS\ lda #0\ jsr fade_chars\ eif
 
+	;intro part
+@	mwa #emptyline l1
+	mwa #emptyline l2
+	mwa #emptyline l3
+	second
+	mwa #intro l1
+	ldx #5
+	
+@	add16 #32 l1
+	second
+	dex
+	bne @-
+	
 	mva #$00 pmcntl		;PMG disabled
 	tax
 	sta:rne hposp0,x+
@@ -129,6 +153,15 @@ stop
 	cli			;IRQ enabled
 
 	rts			;return to ... DOS
+
+intro	dta d"         IT'S INVISIBLE         "
+	dta d"        YOU CAN'T SEE IT        "
+	dta d' ALL THE ARROWS ARE WATCHING IT '
+	dta d'       FIND IT                  '
+	dta d'            GET IT              '
+	dta d"          UNTIL IT'S TOO LATE..."
+finish	dta d"         JOB WELL DONE!         "
+emptyline	dta d"                                " 
 
 ; ---	DLI PROGRAM
 
@@ -396,6 +429,18 @@ x4	lda #$00
 	mwa #DLI.dli_start dliv	;set the first address of DLI interrupt
 
 ;this area is for yours routines
+	lda ntsc
+	bne vbpal
+	inc ntsctimer
+	lda ntsctimer
+	cmp #6
+	bne vbpal
+	mva #255 ntsctimer
+	jmp vbskip
+;pal
+vbpal
+	inc 20	;this will sync the ntsc/pal speed
+vbskip
 
 quit
 	lda regA
@@ -405,6 +450,13 @@ quit
 
 .endp
 
+.proc	second
+	lda 20
+	add #200
+@	cmp 20
+	bne @-
+	rts
+.endp
 ; ---
 	;run main
 ; ---

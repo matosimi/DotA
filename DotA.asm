@@ -3,15 +3,9 @@
 ;todo: funny stuff: level 10, arrow on the left, third from top changes its angle
 ;                   as the fast orbiter reaches top/bottom position
 
-;it's invisble
-;you can't see it
-;but all the arrows are pointing at it
-;find it
-;get it
-;...until it's too late
-debug_skip_title = 1
+debug_skip_title = 0
 debug_level = 0	;1 uses levxx.dat
-debug_visible_dot = 1
+debug_visible_dot = 0
 debug_music_off = 0
 
 color0	equ $2fc
@@ -47,6 +41,8 @@ zpshift		equ $20 ;$20 bytes (till $3f)
 shcount		equ $41	;shift count
 tries		equ $42
 sectimer		equ $43
+miss		equ $44	;miss animation
+finale		equ $45
 unzx7.token	equ $6e
 unzx7.lenL	equ $6f	
 octant		equ $70	;tmp var for atan2
@@ -157,9 +153,9 @@ start
 	sei
 	detect_stereo
 	detect_video_system
-	;todo: modify dli colors with getcolor
-	mva #1 580	;boot on reset
 	
+	mva #1 580	;boot on reset
+	sta finale
 	ift debug_skip_title == 0
 	jsr g2f.main
 	eif
@@ -182,22 +178,10 @@ start
 
 	mva #200 atan2.x2
 	mva #20 atan2.y2
-	;mva #0 draw_shifted_arrow.angle
 	
 	pmg.init
-/*
-;some pmg shit
-:4	mva #$18+#*$30 colpm0+#
-
-	mva #$78 colpm0	;blue cursor
-
-:4	mva #65+9*# hposp0+#
-.rept 4,#
-?x = #
-:16	mva #$ff mypmbase+$100*?x+#+50
-.endr
-	*/
-	mva #00 level
+	
+	mva #0 level
 
 levelinit
 	ldx #0
@@ -220,12 +204,20 @@ levelinit
 	fadein
 	mva #176 animate_hit.anix
 	dynamics.update
-	mva #$16 infobar+29	;reset time
-	mva #$10 infobar+30
+	mva #$14 infobar+29	;reset time
+	mva #$15 infobar+30
 	mva #50 sectimer
+	mva #-1 miss
 loop
+	lda miss
+	bmi docontrol
+	dec miss
+	jmp nocontrol
+	
+docontrol	mva #$be gameVbi.accent
 	control
-	pmg.draw_player
+	
+nocontrol	pmg.draw_player
 	environment
 	draw_level
 	dec_time
@@ -395,7 +387,13 @@ nextlevel	fadeout
 	pla
 	pla
 	pla
-	jmp levelinit
+	lda level
+	cmp #16
+	jne levelinit
+	mva #0 finale
+	pause 0
+	jsr rmt.rmt_silence
+	jmp g2f.main
 	
 done	mva #-1 hit
 	mva #0 phase
@@ -594,12 +592,14 @@ hitbox	lda xpos
 	rts
 		
 none	dec tries
-	getcolor #$26
+	getcolor #$38
 	sta gameVbi.accent
-	pause 10
 	print_tries
-	mva #$be gameVbi.accent
-	rts 
+	lda tries
+	beq endgame
+	mva #10 miss
+	rts
+endgame	jmp dec_time.endgame 
 .endp
 
 .proc	update_dot_coords
@@ -1509,7 +1509,21 @@ x0	rts
 dec01	dec infobar+30
 	mva #50 sectimer
 	rts
-endgame	jmp *	
+endgame	lda #$06	;dark one
+	sta gameVbi.accent
+	pause 50
+	trigwait
+	pla
+	pla
+	jmp levelinit
+.endp
+
+.proc	trigwait
+@	lda trig0
+	bne @-
+@	lda trig0
+	beq @-
+	rts
 .endp
 
 .proc	process_leveldata
