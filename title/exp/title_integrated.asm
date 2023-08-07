@@ -38,7 +38,7 @@ l3	dta a(lines3)
 scr	ins "title.scr"
 lines	dta d'       BY MARTIN SIMECEK        '
 lines2	dta d'  ABBUC SOFTWARE CONTEST 2023   '
-lines3	dta d'                           REV48'
+lines3	dta d'                           REV49'
 
 ;	.ds 16*40
 ;.local	ntsc_color_convert
@@ -150,7 +150,7 @@ stop
 
 	mva #$ff portb		;ROM switch on
 	mva #$40 nmien		;only NMI interrupts, DLI disabled
-	cli			;IRQ enabled
+	rts ;cli			;IRQ enabled
 
 	rts			;return to ... DOS
 
@@ -159,7 +159,7 @@ intro	dta d"         IT'S INVISIBLE         "
 	dta d' ALL THE ARROWS ARE WATCHING IT '
 	dta d'       FIND IT                  '
 	dta d'            GET IT              '
-	dta d"          UNTIL IT'S TOO LATE..."
+	dta d"         BEFORE IT'S TOO LATE..."
 finish	dta d"         JOB WELL DONE!         "
 emptyline	dta d"                                " 
 
